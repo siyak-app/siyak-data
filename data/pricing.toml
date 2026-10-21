@@ -1,0 +1,11 @@
+# Source of dist/pricing.json (spec §9.4). Placeholder: real prices are out of
+# scope for M1. Add one [models."<provider>/<model>"] table per model:
+#
+# [models."anthropic/<model>"]
+# input_per_mtok = 0.0
+# output_per_mtok = 0.0
+
+updated_at = "2026-10-21"
+currency = "USD"
+
+[models]

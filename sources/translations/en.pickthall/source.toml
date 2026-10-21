@@ -1,0 +1,60 @@
+# Pickthall, "The Meaning of the Glorious Koran" (1930), English translation.
+# Digitized text from Tanzil. See README.md in this directory.
+
+[source]
+id = "en.pickthall"
+name = "Tanzil Project translations: Pickthall"
+homepage = "https://tanzil.net/trans/"
+license = "Public domain (translation); Tanzil digitization: non-commercial use"
+attribution = "Translation: Mohammed Marmaduke William Pickthall. Digitized text: Tanzil Project (https://tanzil.net)"
+notes = """
+The file header has no license terms (only name, translator, language, id,
+"Last Update: September 4, 2010" and "Source: Tanzil.net"). The terms below are
+from the translations page on tanzil.net, not from the file.
+"""
+
+[source.terms]
+# Verbatim from https://tanzil.net/trans/ (retrieved 2026-10-21).
+text = """
+The translations provided at this page are for non-commercial purposes only.
+If used otherwise, you need to obtain necessary permission from the translator
+or the publisher.
+"""
+url = "https://tanzil.net/trans/"
+
+[[files]]
+name = "en.pickthall.txt"
+url = "https://tanzil.net/trans/en.pickthall"
+version = "2010-09-04"
+sha256 = "4aabbfa9d96796f5a6b0217d2c39dce1a3084f772bf6f2650e37082a774e3cc7"
+
+[pack]
+id = "en.pickthall"
+type = "translation"
+lang = "en"
+title = { tr = "Pickthall İngilizce Meali", en = "The Meaning of the Glorious Koran" }
+author = "Marmaduke Pickthall"
+version = "1.0.0"
+min_app_version = "0.1.0"
+license = "Public domain"
+attribution = "Digitized text: Tanzil Project (tanzil.net)"
+publish = true
+# Also included in core.db (spec §6.2), and published as a standalone pack.
+bundled = true
+
+[pack.license_terms]
+tr = [
+  "Çeviri kamu malıdır (1930).",
+  "Dijital metin Tanzil Projesi'nden alınmıştır; Tanzil çevirileri yalnızca ticari olmayan kullanım için sunar.",
+]
+en = [
+  "The translation (1930) is in the public domain.",
+  "The digitized text is from the Tanzil Project, which provides translations for non-commercial use only.",
+]
+
+[pack.citation]
+type = "translation"
+author = "Mohammed Marmaduke William Pickthall"
+title = "The Meaning of the Glorious Koran"
+publisher = "Alfred A. Knopf"
+year = "1930"

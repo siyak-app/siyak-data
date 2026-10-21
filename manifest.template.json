@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "pricing_url": "https://quran.kemalozyon.com/data/pricing.json",
+  "release_download_url": "https://github.com/siyak/siyak-data/releases/download/{tag}/{file}",
+  "bundles": [
+    {
+      "id": "recommended",
+      "title": { "tr": "Önerilen paketler", "en": "Recommended packs" },
+      "description": {
+        "tr": "Kök analizi, anlamsal arama ve bir tefsir",
+        "en": "Root analysis, semantic search and a tafsir"
+      },
+      "packs": ["morphology.qac", "ar.jalalayn"]
+    }
+  ]
+}

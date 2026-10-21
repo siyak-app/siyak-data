@@ -1,0 +1,73 @@
+# FIXTURE COPY of sources/tanzil/source.toml for `--profile fixtures` (tests and CI).
+# Only the sha256 values differ: they pin the excerpts in tests/fixtures/cache/.
+# Keep everything else in sync with the real file (tests/test_fixtures.py checks this).
+
+# Tanzil Project: Quran text (Uthmani + Simple Clean) and metadata.
+# See README.md in this directory for origin, edition and download options.
+
+[source]
+id = "tanzil"
+name = "Tanzil Project"
+homepage = "https://tanzil.net"
+license = "CC BY 3.0 with Tanzil terms of use (verbatim copies only; no changes)"
+attribution = "Quran text: Tanzil Project (https://tanzil.net)"
+notes = """
+The text files carry a copyright block that must not be removed or changed; it
+is stored verbatim in NOTICE and shipped in core.db (notices table).
+The copyright line contains the current year ("2007-2026"), so the file hash
+changes when Tanzil's year rolls over even if the text does not.
+"""
+
+[source.terms]
+# Verbatim from the downloaded text files (identical in Uthmani and Simple Clean).
+text = """
+TERMS OF USE:
+
+- Permission is granted to copy and distribute verbatim copies
+  of this text, but CHANGING IT IS NOT ALLOWED.
+
+- This Quran text can be used in any website or application,
+  provided that its source (Tanzil Project) is clearly indicated,
+  and a link is made to tanzil.net to enable users to keep
+  track of changes.
+
+- This copyright notice shall be included in all verbatim copies
+  of the text, and shall be reproduced appropriately in all files
+  derived from or containing substantial portion of this text.
+"""
+url = "https://tanzil.net/download/"
+# The download form requires ticking "I agree with Terms of Use"; the project
+# maintainer accepted the terms above so that `fetch` may send agree=true.
+accepted_by = "Kemal Özyön"
+accepted_on = "2026-10-21"
+
+# Files are pinned from tanzil.net. `fetch` downloads from the mirror first (a
+# siyak-data release holding the exact pinned bytes, which the terms allow as
+# verbatim copies) and falls back to `url`. `check-updates` compares tanzil.net
+# with the pin. The XML export is used because it keeps the basmala in its own
+# `bismillah` attribute instead of prefixing it to ayah 1 (README.md).
+
+[[files]]
+name = "quran-uthmani.xml"
+# Tanzil's default form options for Uthmani: pause marks, sajdah signs and
+# tatweel below superscript alefs on; rub-el-hizb signs off.
+url = "https://tanzil.net/pub/download/index.php?marks=true&sajdah=true&alef=true&tatweel=true&quranType=uthmani&outType=xml&agree=true"
+mirror = "https://github.com/siyak/siyak-data/releases/download/sources-tanzil-1.1/quran-uthmani.xml"
+version = "1.1"
+sha256 = "618652b167199289c760727d9d26a7446d20f1cfb198ad7e91a4197c45c90a78"
+
+[[files]]
+name = "quran-simple-clean.xml"
+# No options: with marks=true Tanzil adds pause marks even to Simple Clean.
+url = "https://tanzil.net/pub/download/index.php?quranType=simple-clean&outType=xml&agree=true"
+mirror = "https://github.com/siyak/siyak-data/releases/download/sources-tanzil-1.1/quran-simple-clean.xml"
+version = "1.1"
+sha256 = "38a4ed0ceb5a2c48d992ad16fd64597f7d495b5ac9e3d53b85ea843ea3323b00"
+
+[[files]]
+name = "quran-data.xml"
+url = "https://tanzil.net/res/text/metadata/quran-data.xml"
+mirror = "https://github.com/siyak/siyak-data/releases/download/sources-tanzil-1.1/quran-data.xml"
+version = "1.0"
+sha256 = "8867c1d88191472adec9db694b3cd9f135b1a2ef580574d32cf888dcb22c5c7a"
+note = "Metadata: surahs (name, tname, type, ayas), juz start points. License attribute: cc-by."

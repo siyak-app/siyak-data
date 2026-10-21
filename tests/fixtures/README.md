@@ -1,0 +1,25 @@
+# Test fixtures
+
+Tiny inputs for tests and for the CI build (`uv run siyak-data build --profile fixtures`),
+so that CI needs no network access.
+
+## `cache/`: excerpts of the pinned source files
+
+| File | Content | Taken from (pinned sha256) |
+|---|---|---|
+| `tanzil/quran-uthmani.xml` | surahs 1, 97, 112, 113, 114 | `sources/tanzil` `quran-uthmani.xml` (`8c5aeae2…0417`) |
+| `tanzil/quran-simple-clean.xml` | surahs 1, 97, 112, 113, 114 | `sources/tanzil` `quran-simple-clean.xml` (`140787b7…b1fe`) |
+| `tanzil/quran-data.xml` | the whole file | `sources/tanzil` `quran-data.xml` (`8867c1d8…5c7a`) |
+| `en.pickthall/en.pickthall.txt` | the same five surahs and the header | `sources/translations/en.pickthall` (`4aabbfa9…3cc7`) |
+
+The excerpts are **whole lines copied unchanged** from the pinned files: the
+XML prolog with Tanzil's full copyright block, the `<quran>` element and the
+complete `<sura>` elements of the listed surahs. No verse text is altered, as
+Tanzil's terms require ("verbatim copies … CHANGING IT IS NOT ALLOWED"; the
+copyright block must be included). `tests/test_fixtures.py` checks that every
+fixture verse is identical to the pinned file when that file is in `.cache/`.
+
+## `sources/`: fixture copies of `source.toml`
+
+Identical to the real files except for the sha256 of the excerpts. The NOTICE
+files are copies of the real ones.
