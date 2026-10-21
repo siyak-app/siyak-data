@@ -6,19 +6,23 @@ their pieces), in this order:
 
 1. **Edition matter** listed in ``[[build.exclude]]`` (editor or publisher
    introductions, studies, indexes, printer colophons) is left out.
-2. **The author's introduction**, where the dump attaches it to another verse,
-   is moved to the start of 1:1 (``[[build.move_to_start]]``).
+2. **The author's introduction**, where the dump attaches it to a verse, becomes
+   a separate ``introduction`` passage anchored at 1:1 (``[[build.introduction]]``).
 3. **Quranpedia's copy labels** ("نص مكرر لاشتراكه مع الآية N:", "جزء ذو علاقة
    من تفسير الآية السابقة:") start a section holding a copy of another verse's
    text. When the copy is verified (its letters, compared with the search
    normalization, occur in the text stored for that verse), the label and the
    copy are not stored again and the two verses join one passage. Unverified
    sections stay as they are, label included.
-4. **Duplicates from a second digital edition**: a piece without a page that
-   is verified to repeat the paged text of a verse is treated the same way.
+4. **Duplicates from a second digital edition** (``dedupe_unpaged``, on by
+   default): a piece without a page that is verified to repeat the paged text of
+   a verse is treated the same way.
 5. **Grouping**: verses sharing a piece, or joined by step 3/4, form one
    passage covering the whole range between them (spec §5.2).
-6. **Gap merge** (M1c decision K4): a verse without text joins the preceding
+6. **Edition headings** (``passage_headings``, al-Shawkani): where the printed
+   edition heads each group with "[سورة … : الآيات a الى b]", those ranges are the
+   passages: links across a heading boundary are cut and each group is joined.
+7. **Gap merge** (M1c decision K4): a verse without text joins the preceding
    passage of the same surah only if that passage quotes the verse's first
    words. Other gaps stay empty and are reported.
 
@@ -49,6 +53,13 @@ _REP = re.compile(
     r"\s*([\u0660-\u06690-9]+)\s*:\s*</span>"
 )
 _REL = re.compile(r"<h\u0665>\s*جزء ذو علاقة من تفسير الآية السابقة\s*:?\s*</h\u0665>")
+_NUM = r"([\u0660-\u06690-9]+)"
+#: An edition heading "[سورة <name> (<n>) : الآيات <a> الى <b>]" or "[… : آية <a>]"
+#: (numbers in Arabic-Indic digits).
+_HEADING = re.compile(
+    rf"\[سورة [^\]]{{1,40}}?\({_NUM}\)\s*:\s*(?:آية\s*{_NUM}|الآيات\s*{_NUM}\s*الى\s*{_NUM})\s*\]"
+)
+_TAG = re.compile(r"<[^>]*>")
 _DIGITS = str.maketrans("".join(chr(0x0660 + d) for d in range(10)), "0123456789")
 #: A copy shorter than this (in letters) is too short to verify.
 MIN_COPY_LETTERS = 30
@@ -90,7 +101,7 @@ class Section:
 
 @dataclass(frozen=True)
 class PageRule:
-    """A ``[[build.exclude]]`` or ``[[build.move_to_start]]`` entry."""
+    """A ``[[build.exclude]]`` or ``[[build.introduction]]`` entry."""
 
     reason: str
     part: str | None = None
@@ -117,7 +128,9 @@ class Rules:
     book: int
     drop_footnotes: bool
     exclude: tuple[PageRule, ...] = ()
-    move_to_start: tuple[PageRule, ...] = ()
+    introduction: tuple[PageRule, ...] = ()
+    dedupe_unpaged: bool = True
+    passage_headings: bool = False
 
 
 def _key(text: str, where: str) -> Key:
@@ -165,11 +178,20 @@ def parse_rules(build: dict[str, Any], where: str) -> Rules:
             _page_rule(r, f"{where} [[build.exclude]]", verse_required=False)
             for r in build.get("exclude", [])
         ),
-        move_to_start=tuple(
-            _page_rule(r, f"{where} [[build.move_to_start]]", verse_required=True)
-            for r in build.get("move_to_start", [])
+        introduction=tuple(
+            _page_rule(r, f"{where} [[build.introduction]]", verse_required=True)
+            for r in build.get("introduction", [])
         ),
+        dedupe_unpaged=_flag(build, "dedupe_unpaged", True, where),
+        passage_headings=_flag(build, "passage_headings", False, where),
     )
+
+
+def _flag(build: dict[str, Any], name: str, default: bool, where: str) -> bool:
+    value = build.get(name, default)
+    if not isinstance(value, bool):
+        raise PipelineError(f"{where} [build]: '{name}' must be true or false")
+    return value
 
 
 @dataclass
@@ -209,6 +231,7 @@ class Passage:
     first: Key
     last: Key
     sections: list[Section] = field(default_factory=list)
+    kind: str = "commentary"  # or "introduction" (the author's, anchored at 1:1)
 
 
 @dataclass
@@ -219,12 +242,14 @@ class Assembly:
     gaps: list[Key]
     gap_merged: list[Key]
     excluded: dict[str, int]  # rule reason -> letters left out
-    moved: dict[str, int]  # rule reason -> letters moved to 1:1
+    moved: dict[str, int]  # rule reason -> letters of the author's introduction
     copies: Counter[str]  # e.g. "rep verified", "rel unverified", "unpaged duplicate"
     copy_letters: int
     page_artifacts: int
     ayahs_field_mismatches: int
     accounting: dict[str, int]
+    introduction: Passage | None = None
+    headings: dict[str, int] = field(default_factory=dict)
 
 
 def _cut(piece: Piece, rule: PageRule) -> tuple[Piece, str]:
@@ -254,26 +279,27 @@ def _exclude(entries: dict[Key, list[Piece]], rules: Rules) -> dict[str, int]:
     return excluded
 
 
-def _move_to_start(entries: dict[Key, list[Piece]], rules: Rules) -> dict[str, int]:
-    """Apply ``[[build.move_to_start]]``; return letters moved per rule."""
+def _introduction(
+    entries: dict[Key, list[Piece]], rules: Rules
+) -> tuple[dict[str, int], list[Piece]]:
+    """Apply ``[[build.introduction]]``: take the author's introduction out of the
+    verse entries; return letters per rule and the pieces, in order."""
     moved: dict[str, int] = {}
     start: list[Piece] = []
-    for rule in rules.move_to_start:
+    for rule in rules.introduction:
         found = list(
             dict.fromkeys(
                 p for key, ps in sorted(entries.items()) for p in ps if rule.matches(key, p)
             )
         )
         if not found:
-            raise PipelineError(f"move_to_start rule matches nothing: {rule}")
+            raise PipelineError(f"introduction rule matches nothing: {rule}")
         gone = set(found)
         for key, pieces in entries.items():
             entries[key] = [p for p in pieces if p not in gone]
         start += found
         moved[rule.reason] = sum(_letters(p.html, drop=rules.drop_footnotes) for p in found)
-    if start:
-        entries[(1, 1)] = start + [p for p in entries.get((1, 1), []) if p not in start]
-    return moved
+    return moved, start
 
 
 def _sections(piece: Piece) -> list[Section]:
@@ -317,9 +343,12 @@ class _Ranges:
 class _Assembler:
     """One book's verses, with cached letters and skeletons of every section."""
 
-    def __init__(self, sections: dict[Key, list[Section]], drop: bool) -> None:
+    def __init__(
+        self, sections: dict[Key, list[Section]], drop: bool, *, dedupe_unpaged: bool = True
+    ) -> None:
         self.sections = sections
         self.drop = drop
+        self.dedupe_unpaged = dedupe_unpaged
         self._letters: dict[Section, int] = {}
         self._skeletons: dict[Section, str] = {}
         self._stored: dict[Key, str] = {}
@@ -362,7 +391,7 @@ class _Assembler:
     def find_copy(self, s: Section, key: Key) -> int | None:
         """The ayah whose stored text contains this section's copy, or None."""
         surah, ayah = key
-        if not s.label and s.piece.paged:
+        if not s.label and (s.piece.paged or not self.dedupe_unpaged):
             return None
         body = self.skeleton(s)
         if len(body) < MIN_COPY_LETTERS:
@@ -426,6 +455,62 @@ class _Assembler:
                 if s1 == s2 and not any((s1, a) in has_text for a in range(a1 + 1, a2)):
                     self.link(s1, a1, a2)
 
+    def headings(self) -> tuple[dict[int, list[tuple[int, int]]], int]:
+        """The verse groups the edition's headings announce, per surah, and the
+        number of headings that could not be used (wrong surah, bad or overlapping range)."""
+        groups: dict[int, set[tuple[int, int]]] = {}
+        rejected = 0
+        for (surah, _ayah), ss in self.kept.items():
+            for s in ss:
+                if s.label or not s.piece.paged:
+                    continue
+                for m in _HEADING.finditer(_TAG.sub(" ", s.html)):
+                    number = int(m.group(1).translate(_DIGITS))
+                    single, first, last = m.group(2), m.group(3), m.group(4)
+                    a = int((single or first).translate(_DIGITS))
+                    b = int((single or last).translate(_DIGITS))
+                    if number != surah or not 1 <= a <= b:
+                        rejected += 1
+                        continue
+                    groups.setdefault(surah, set()).add((a, b))
+        out: dict[int, list[tuple[int, int]]] = {}
+        for surah, ranges in groups.items():
+            ordered: list[tuple[int, int]] = []
+            for a, b in sorted(ranges):
+                if ordered and a <= ordered[-1][1]:
+                    rejected += 1
+                    continue
+                ordered.append((a, b))
+            out[surah] = ordered
+        return out, rejected
+
+    def apply_headings(self) -> dict[str, int]:
+        """Make the edition's heading groups the passages (step 6)."""
+        groups, rejected = self.headings()
+        before = {(s, tuple(span)) for s, r in self.ranges.items() for span in r.spans}
+        for surah, ranges in groups.items():
+            bounds = sorted({a for a, _ in ranges} | {b + 1 for _, b in ranges})
+            new = _Ranges()
+            for lo, hi in self.ranges.get(surah, _Ranges()).spans:
+                cuts = [lo, *(x for x in bounds if lo < x <= hi), hi + 1]
+                for start, stop in itertools.pairwise(cuts):
+                    new.add(start, stop - 1)
+            for a, b in ranges:
+                if any(
+                    any(self.letters(s) for s in self.kept.get((surah, v), []))
+                    for v in range(a, b + 1)
+                ):
+                    new.add(a, b)
+            self.ranges[surah] = new
+        after = {(s, tuple(span)) for s, r in self.ranges.items() for span in r.spans}
+        return {
+            "headings": sum(len(r) for r in groups.values()),
+            "headings_rejected": rejected,
+            "passages_before": len(before),
+            "passages_after": len(after),
+            "passages_changed": len(after - before),
+        }
+
     def passages(self) -> list[Passage]:
         out = []
         for surah in sorted(self.ranges):
@@ -446,18 +531,32 @@ def assemble(dump: Dump, rules: Rules, verse_text: dict[Key, str]) -> Assembly:
     entries = {k: list(v) for k, v in dump.entries.items()}
     source = sum(_letters(p.html, drop=False) for p in _unique(entries.values()))
     excluded = _exclude(entries, rules)
-    moved = _move_to_start(entries, rules)
-    work = _Assembler({k: [s for p in ps for s in _sections(p)] for k, ps in entries.items()}, drop)
+    moved, intro_pieces = _introduction(entries, rules)
+    work = _Assembler(
+        {k: [s for p in ps for s in _sections(p)] for k, ps in entries.items()},
+        drop,
+        dedupe_unpaged=rules.dedupe_unpaged,
+    )
     work.resolve_copies()
     work.link_shared()
+    headings = work.apply_headings() if rules.passage_headings else {}
     passages = work.passages()
     gaps, merged = _merge_gaps(passages, verse_text, work)
+    introduction = None
+    if intro_pieces:
+        introduction = Passage((1, 1), (1, 1), kind="introduction")
+        introduction.sections = list(dict.fromkeys(s for p in intro_pieces for s in _sections(p)))
     stored = {s for p in passages for s in p.sections}
-    accounting = _accounting(entries, stored, source, sum(excluded.values()), work)
+    if introduction is not None:
+        stored |= set(introduction.sections)
+    intro_entries = {(0, 0): intro_pieces}
+    accounting = _accounting(
+        {**entries, **intro_entries}, stored, source, sum(excluded.values()), work
+    )
     artifacts = sum(1 for s in stored if _PAGE_ARTIFACT.match(_text(s.html, drop) or "x"))
     return Assembly(
         passages, gaps, merged, excluded, moved, work.copies, accounting["copies"], artifacts,
-        dump.ayahs_field_mismatches, accounting,
+        dump.ayahs_field_mismatches, accounting, introduction, headings,
     )  # fmt: skip
 
 

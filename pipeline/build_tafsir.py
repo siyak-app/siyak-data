@@ -18,18 +18,20 @@ from pipeline.build_translation import require_pack, source_version
 from pipeline.errors import PipelineError
 from pipeline.fetch import verify_cached
 from pipeline.normalize import normalize
+from pipeline.qul import load_qul
 from pipeline.quranpedia import MIN_GAP_PROBE, Assembly, Key, assemble, load_dump, parse_rules
 from pipeline.schema import SCHEMA_VERSION, PackInfo, finalize, new_database, write_pack_info
 from pipeline.sources import Source
 from pipeline.tafsir_html import convert, skeleton, subset_letters
 
-#: The tafsir tables of content.db (spec §5.2, plus part/page) without foreign keys.
+#: The tafsir tables of content.db (spec §5.2) without foreign keys.
 TAFSIR_DDL = """
 CREATE TABLE tafsir (
   id          INTEGER PRIMARY KEY,
   pack_id     TEXT NOT NULL,
   verse_from  INTEGER NOT NULL,
   verse_to    INTEGER NOT NULL,
+  kind        TEXT NOT NULL DEFAULT 'commentary' CHECK (kind IN ('commentary','introduction')),
   CHECK (verse_to >= verse_from)
 );
 CREATE TABLE tafsir_paragraphs (
@@ -38,8 +40,8 @@ CREATE TABLE tafsir_paragraphs (
   text       TEXT NOT NULL,
   part       TEXT,
   page       INTEGER,
-  PRIMARY KEY (tafsir_id, idx)
-) WITHOUT ROWID;
+  UNIQUE (tafsir_id, idx)
+);
 """
 
 #: Words of a verse looked for in its passage by the quotation check.
@@ -55,34 +57,63 @@ class TafsirRow:
     verse_from: int
     verse_to: int
     paragraphs: list[tuple[str, str | None, int | None]]
+    kind: str = "commentary"
 
 
-def dump_name(source: Source) -> str:
-    """The pinned dump file of a Quranpedia tafsir source."""
+def is_tafsir_source(source: Source) -> bool:
+    """A tafsir pack built from a Quranpedia dump or a QUL database."""
+    pack = source.pack
+    return (
+        pack is not None
+        and pack.type == "tafsir"
+        and ("quranpedia_book" in source.extra or "qul_file" in source.extra)
+    )
+
+
+def input_file(source: Source) -> str:
+    """The pinned file a tafsir pack is built from."""
+    if "qul_file" in source.extra:
+        return str(source.extra["qul_file"])
     rules = parse_rules(source.extra, str(source.path))
     return f"tafsir-book-{rules.book}.json.gz"
+
+
+def is_available(source: Source) -> bool:
+    """False for an optional source that is not ready (``Source.skipped_optional``)."""
+    return not source.skipped_optional()
+
+
+def source_assembly(
+    source: Source, ids: dict[Key, int], verse_text: dict[Key, str]
+) -> tuple[Assembly, bool]:
+    """The passages of one tafsir source and whether its footnotes are dropped."""
+    path = verify_cached(source, input_file(source))
+    if "qul_file" in source.extra:
+        return load_qul(path, ids), True
+    rules = parse_rules(source.extra, str(source.path))
+    dump = load_dump(path, ids)
+    book_id = dump.book.get("id")
+    if book_id != rules.book:
+        raise PipelineError(f"{source.path}: the dump is book {book_id}, expected {rules.book}")
+    return assemble(dump, rules, verse_text), rules.drop_footnotes
 
 
 def tafsir_rows(
     source: Source, ids: dict[Key, int], verse_text: dict[Key, str]
 ) -> tuple[list[TafsirRow], Assembly]:
     """Assemble and convert one book; ``verse_text`` is Tanzil's Simple Clean text."""
-    rules = parse_rules(source.extra, str(source.path))
-    dump = load_dump(verify_cached(source, dump_name(source)), ids)
-    book_id = dump.book.get("id")
-    if book_id != rules.book:
-        raise PipelineError(f"{source.path}: the dump is book {book_id}, expected {rules.book}")
-    assembly = assemble(dump, rules, verse_text)
+    assembly, drop_footnotes = source_assembly(source, ids, verse_text)
     rows = []
-    for passage in assembly.passages:
+    intro = [assembly.introduction] if assembly.introduction else []
+    for passage in intro + assembly.passages:
         pieces = [(s.html, s.part, s.page) for s in passage.sections]
-        converted = convert(pieces, drop_footnotes=rules.drop_footnotes)
+        converted = convert(pieces, drop_footnotes=drop_footnotes)
         paragraphs = [
             (html, part if page else None, page) for html, part, page in converted.paragraphs
         ]
         if not paragraphs:
             raise PipelineError(f"{source.id}: passage {passage.first}-{passage.last} has no text")
-        rows.append(TafsirRow(ids[passage.first], ids[passage.last], paragraphs))
+        rows.append(TafsirRow(ids[passage.first], ids[passage.last], paragraphs, passage.kind))
     return rows, assembly
 
 
@@ -92,8 +123,8 @@ def write_database(out: Path, info: PackInfo, rows: list[TafsirRow]) -> Path:
     write_pack_info(conn, info)
     conn.executescript(TAFSIR_DDL)
     conn.executemany(
-        "INSERT INTO tafsir (id, pack_id, verse_from, verse_to) VALUES (?, ?, ?, ?)",
-        [(n, info.id, r.verse_from, r.verse_to) for n, r in enumerate(rows, start=1)],
+        "INSERT INTO tafsir (id, pack_id, verse_from, verse_to, kind) VALUES (?, ?, ?, ?, ?)",
+        [(n, info.id, r.verse_from, r.verse_to, r.kind) for n, r in enumerate(rows, start=1)],
     )
     conn.executemany(
         "INSERT INTO tafsir_paragraphs (tafsir_id, idx, text, part, page) VALUES (?, ?, ?, ?, ?)",
@@ -115,6 +146,8 @@ def quote_check(
     checked = quoted = 0
     unquoted: list[Key] = []
     for row in rows:
+        if row.kind != "commentary":
+            continue
         text = skeleton(" ".join(html for html, _, _ in row.paragraphs))
         for verse_id in range(row.verse_from, row.verse_to + 1):
             key = keys[verse_id]
@@ -149,13 +182,20 @@ def coverage(
 ) -> dict[str, Any]:
     """The figures of one pack for the coverage report."""
     keys = {v: k for k, v in ids.items()}
-    covered = sum(r.verse_to - r.verse_from + 1 for r in rows)
-    sizes = sorted(rows, key=lambda r: r.verse_to - r.verse_from, reverse=True)[:5]
+    commentary = [r for r in rows if r.kind == "commentary"]
+    covered = sum(r.verse_to - r.verse_from + 1 for r in commentary)
+    sizes = sorted(commentary, key=lambda r: r.verse_to - r.verse_from, reverse=True)[:5]
     paragraphs = [p for r in rows for p in r.paragraphs]
     return {
         "id": require_pack(source).id,
-        "book": parse_rules(source.extra, str(source.path)).book,
-        "passages": len(rows),
+        "book": (
+            f"Quranpedia book {source.extra['quranpedia_book']}"
+            if "quranpedia_book" in source.extra
+            else f"QUL resource {source.extra.get('qul_resource')}"
+        ),
+        "passages": len(commentary),
+        "introduction_paragraphs": sum(len(r.paragraphs) for r in rows if r.kind != "commentary"),
+        "headings": assembly.headings,
         "paragraphs": len(paragraphs),
         "paragraphs_without_page": sum(1 for p in paragraphs if p[2] is None),
         "letters": sum(len(subset_letters(p[0])) for p in paragraphs),
@@ -223,7 +263,7 @@ def _coverage_markdown(figures: list[dict[str, Any]]) -> str:
         "in their own passage (a low share, or a long run of unquoted verses, points to",
         "commentary filed under the wrong verses in the source).",
         "",
-        "| Pack | Book | Passages | Verses covered | Gaps | Gap merges (K4) | Quoted "
+        "| Pack | Source | Passages | Verses covered | Gaps | Gap merges (K4) | Quoted "
         "| Paragraphs without page |",
         "|---|---|---|---|---|---|---|---|",
     ]
@@ -239,7 +279,7 @@ def _coverage_markdown(figures: list[dict[str, Any]]) -> str:
         acc = f["accounting"]
         lines += [
             "",
-            f"## `{f['id']}` (Quranpedia book {f['book']})",
+            f"## `{f['id']}` ({f['book']})",
             "",
             f"- Letters: source {acc['source']:,} = stored {acc['stored']:,} + repeated "
             f"{acc['repeated']:,} + dropped copies {acc['copies']:,} + editor footnotes "
@@ -247,7 +287,9 @@ def _coverage_markdown(figures: list[dict[str, Any]]) -> str:
             f"- Largest passages: {', '.join(f['largest'])}",
             f"- Copies and duplicates: {_kv(f['copies'])}",
             f"- Edition matter left out: {_kv(f['excluded'])}",
-            f"- Moved to the start of 1:1: {_kv(f['moved'])}",
+            f"- Author's introduction (kind introduction, at 1:1): {_kv(f['moved'])}, "
+            f"{f['introduction_paragraphs']:,} paragraphs",
+            f"- Edition headings (passage_headings): {_kv(f['headings'])}",
             f"- Page artifacts kept (pieces that are only a page number): {f['page_artifacts']}",
             f"- `ayahs` field not naming the verse: {f['ayahs_field_mismatches']:,} pieces",
             f"- Gaps ({len(f['gaps'])}): {_list(f['gaps'])}",

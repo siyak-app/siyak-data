@@ -90,6 +90,16 @@ class Source:
         """Where ``fetch`` stores the given file of this source."""
         return cache_dir() / self.id / file_name
 
+    def skipped_optional(self) -> bool:
+        """True for an ``optional`` source (``[build] optional = true``) that is not
+        ready: a hand-downloaded file is missing, or a file is not pinned yet. Build
+        and validate skip it instead of failing (e.g. a file that may not be
+        mirrored before permission is granted, so CI never has it)."""
+        if not self.extra.get("optional"):
+            return False
+        manual_missing = any(not self.cache_path(f.name).exists() for f in self.files if f.manual)
+        return manual_missing or any(not f.sha256 for f in self.files)
+
     def permission_problem(self) -> str | None:
         """Why this source may not be published, if it needs written permission.
 

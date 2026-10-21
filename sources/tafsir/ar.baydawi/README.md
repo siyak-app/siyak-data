@@ -37,13 +37,15 @@ Other Quranpedia ids considered:
 ## Edition matter and the author's introduction
 
 Found in the M1c review (page-order check and index detection over the whole
-dump, then each run read); applied by the rules in `source.toml`:
+dump, then each run read); applied by the rules in `source.toml`. "introduction"
+marks the author's own introduction, stored as a separate `kind = "introduction"`
+passage at 1:1:
 
 | Rule | Verse(s) | Volume | Pages | What it is |
 |---|---|---|---|---|
 | left out | 114:1-114:6 | 1 | 5–20 | Editor's introduction (مقدمة التحقيق) |
 | left out | 114:1-114:6 | 5 | 353–356 | Table of contents of volume 5 (محتوى الجزء الخامس) |
-| moved to 1:1 | 114:1-114:6 | 1 | 23–23 | Author's preface |
+| introduction | 114:1-114:6 | 1 | 23–23 | Author's preface |
 
 After conversion: 1,188 passages covering 6,236 verses; details in `dist/reports/tafsir-coverage.md`. Source issues reported upstream: `docs/upstream/quranpedia.md`.
 

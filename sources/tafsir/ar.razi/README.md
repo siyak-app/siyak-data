@@ -37,7 +37,9 @@ Other Quranpedia ids considered:
 ## Edition matter and the author's introduction
 
 Found in the M1c review (page-order check and index detection over the whole
-dump, then each run read); applied by the rules in `source.toml`:
+dump, then each run read); applied by the rules in `source.toml`. "introduction"
+marks the author's own introduction, stored as a separate `kind = "introduction"`
+passage at 1:1:
 
 | Rule | Verse(s) | Volume | Pages | What it is |
 |---|---|---|---|---|

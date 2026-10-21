@@ -40,6 +40,7 @@ _TAGS: dict[str, tuple[str, str]] = {
     "p": ("block", ""),
     "p.text-center": ("block", ""),
     "div": ("block", ""),
+    "div.ar": ("block", ""),  # QUL
     "span.d-block": ("block", ""),
     "h3": ("heading", "b"),
     # Headings whose level the source wrote in Arabic-Indic digits (h3, h5).
@@ -50,6 +51,7 @@ _TAGS: dict[str, tuple[str, str]] = {
     "b": ("inline", "b"),
     "span.book-ayah text-primary": ("inline", "ayah"),
     "span.surah-ref": ("inline", "ref"),
+    "span.qpc-hafs": ("inline", "ayah"),  # QUL
     "span": ("inline", ""),
     "span.text-danger": ("inline", ""),
     "a.foot-note text-primary": ("footnote", "marker"),

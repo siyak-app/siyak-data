@@ -32,6 +32,7 @@ note = "Dump 2026-10-20; file built_at 2026-08-10T20:28:24+00:00; 3,482,345 byte
 quranpedia_book = 37
 footnotes = "drop"   # editor footnotes of the printed edition (M1c decision K2)
 min_coverage = 6227   # verses covered by the pinned dump; validate fails below this
+dedupe_unpaged = true   # pieces without a page that repeat paged text are stored once (M1c)
 
 [pack]
 id = "ar.abussuud"

@@ -32,15 +32,17 @@ note = "Dump 2026-10-20; file built_at 2026-08-10T20:36:18+00:00; 9,422,355 byte
 quranpedia_book = 343
 footnotes = "drop"   # editor footnotes of the printed edition (M1c decision K2)
 min_coverage = 6236   # verses covered by the pinned dump; validate fails below this
+dedupe_unpaged = true   # pieces without a page that repeat paged text are stored once (M1c)
+passage_headings = true # the edition's "[سورة … : الآيات a الى b]" headings give the passages
 
-# Edition matter left out and the author's introduction moved to 1:1
+# Edition matter left out, and the author's introduction (stored as kind = "introduction" at 1:1)
 # (M1c decisions; evidence in README.md, counts in the coverage report).
 [[build.exclude]]
 verse = "114:1-114:6"
 part = "1"
 pages = [5, 12]
 reason = "Editor's introduction (التعريف بالمؤلف والكتاب)"
-[[build.move_to_start]]
+[[build.introduction]]
 verse = "114:1-114:6"
 part = "1"
 pages = [13, 19]

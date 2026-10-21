@@ -227,6 +227,9 @@ def check_translation_pack(
 def check_sources(sources: list[Source], report: Report) -> None:
     """Every pinned input still matches, and pack metadata is complete."""
     for source in sources:
+        if source.skipped_optional():
+            report.info.append(f"{source.id}: optional source not ready (cache or pin), skipped")
+            continue
         for f in source.files:
             try:
                 verify_cached(source, f.name)

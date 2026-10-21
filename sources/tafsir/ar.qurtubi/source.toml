@@ -1,0 +1,71 @@
+# al-Jāmiʿ li-Aḥkām al-Qurʾān, by Muḥammad ibn Aḥmad al-Qurṭubī (d. 671/1273).
+# Text from the Quranic Universal Library (QUL, Tarteel), tafsir resource #23.
+# Not published until PERMISSION.md records Tarteel's reply (spec §6.6). See README.md.
+
+[source]
+id = "ar.qurtubi"
+name = "Quranic Universal Library: al-Jāmiʿ li-Aḥkām al-Qurʾān (al-Qurṭubī)"
+homepage = "https://qul.tarteel.ai"
+license = "Classical work (public domain); QUL digitization: no license or origin stated (permission requested)"
+attribution = "Source: Quranic Universal Library (Tarteel), https://qul.tarteel.ai"
+notes = """
+QUL states no origin (edition, editor) or license for this resource; its FAQ asks
+users to check the license of each resource. A written request for the origin of
+the text and for permission to redistribute it unmodified was sent to Tarteel.
+The zip was downloaded by hand by the project maintainer on 2026-10-21.
+"""
+
+[[files]]
+name = "ar-tafseer-al-qurtubi.db.zip"
+url = "https://qul.tarteel.ai/resources/tafsir/23"
+manual = true
+version = "2025-05-26"
+sha256 = ""
+note = "As downloaded from QUL; holds only ar-tafseer-al-qurtubi.db (dated 2025-05-26). Not mirrored before permission."
+
+[[files]]
+name = "ar-tafseer-al-qurtubi.db"
+extract_from = "ar-tafseer-al-qurtubi.db.zip"
+version = "2025-05-26"
+sha256 = ""
+note = "SQLite: table tafsir (ayah_key, group_ayah_key, from_ayah, to_ayah, ayah_keys, text)."
+
+[build]
+# Settings for pipeline/build_tafsir.py and pipeline/qul.py (docs/pack-format.md §4.6).
+qul_resource = 23
+qul_file = "ar-tafseer-al-qurtubi.db"
+optional = true              # CI has no copy until permission allows a mirror; skipped when absent
+requires_permission = true   # publish = true needs PERMISSION.md (Tarteel's reply)
+
+[pack]
+id = "ar.qurtubi"
+type = "tafsir"
+lang = "ar"
+title = { tr = "Kurtubî Tefsiri: el-Câmi' li-Ahkâmi'l-Kur'ân", en = "al-Jāmiʿ li-Aḥkām al-Qurʾān (al-Qurṭubī)" }
+description = { tr = "Ahkâm tefsiri: âyetlerden çıkan fıkhî hükümleri mezheplerin görüşlerini karşılaştırarak işler; kıraat, dil ve rivayetlere de geniş yer verir.", en = "A legal (aḥkām) tafsir: draws the rulings from the verses, comparing the views of the schools of law, with ample attention to readings, language and reports." }
+author = "Muḥammad ibn Aḥmad al-Qurṭubī"
+version = "1.0.0"
+min_app_version = "0.1.0"
+license = "Public domain (classical work); QUL digitization (permission requested)"
+attribution = "Source: Quranic Universal Library (Tarteel), https://qul.tarteel.ai"
+publish = false
+
+[pack.license_terms]
+tr = [
+  "Eser klasik bir metindir; kamu malıdır.",
+  "Dijital metin: Quranic Universal Library (Tarteel). Kaynak ve bağlantısı gösterilmelidir.",
+  "Metnin baskısı (tahkik) kaynakta belirtilmemiştir.",
+]
+en = [
+  "The work is a classical text in the public domain.",
+  "Digitized text: Quranic Universal Library (Tarteel). The source and its link must be shown.",
+  "The source does not state which printed edition the text follows.",
+]
+
+[pack.citation]
+type = "tafsir"
+author = "Muḥammad ibn Aḥmad al-Qurṭubī"
+title = "al-Jāmiʿ li-Aḥkām al-Qurʾān"
+title_ar = "الجامع لأحكام القرآن"
+digitized_by = "Quranic Universal Library (Tarteel)"
+url = "https://qul.tarteel.ai"

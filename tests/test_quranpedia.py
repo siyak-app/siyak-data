@@ -84,7 +84,7 @@ def test_exclusion_and_move_rules() -> None:
         {
             "quranpedia_book": 1,
             "exclude": [{"part": "0", "reason": "editor"}],
-            "move_to_start": [{"verse": "9:3", "part": "1", "pages": [1, 2], "reason": "intro"}],
+            "introduction": [{"verse": "9:3", "part": "1", "pages": [1, 2], "reason": "intro"}],
         },
         "test",
     )
@@ -93,9 +93,10 @@ def test_exclusion_and_move_rules() -> None:
         (9, 3): [Piece("مقدمة المحقق", "0", 5), paged("مقدمة المؤلف", 1), paged(T3, 30)],
     }
     a = run(entries, rules)
-    first = a.passages[0]
-    assert first.first == (1, 1)
-    assert [s.html for s in first.sections] == ["مقدمة المؤلف", T1]
+    assert a.introduction is not None and a.introduction.kind == "introduction"
+    assert (a.introduction.first, a.introduction.last) == ((1, 1), (1, 1))
+    assert [s.html for s in a.introduction.sections] == ["مقدمة المؤلف"]
+    assert [s.html for s in a.passages[0].sections] == [T1]
     assert a.excluded == {"editor": len("مقدمةالمحقق")}
     assert a.moved == {"intro": len("مقدمةالمؤلف")}
 
@@ -125,3 +126,24 @@ def test_every_letter_is_accounted_for() -> None:
     acc = a.accounting
     assert acc["footnotes"] == len("(١)حاشية")
     assert acc["source"] == sum(v for k, v in acc.items() if k != "source")
+
+
+def test_unpaged_duplicates_can_be_kept() -> None:
+    rules = Rules(book=1, drop_footnotes=True, dedupe_unpaged=False)
+    a = run({(9, 1): [paged(T1, 10), unpaged(T1.replace(" ", "  "))]}, rules)
+    assert a.copies["unpaged kept"] == 1 and "unpaged duplicate" not in a.copies
+
+
+def test_edition_headings_draw_the_passages() -> None:
+    heading = "[سورة التوبة (٩) : الآيات ١ الى ٢]"
+    rules = Rules(book=1, drop_footnotes=True, passage_headings=True)
+    entries = {
+        (9, 1): [paged(heading + T1, 10)],
+        (9, 2): [paged(T2, 11)],
+        (9, 3): [paged("[سورة التوبة (٩) : آية ٣]" + T3, 12), unpaged(REL.format(T1))],
+    }
+    plain = run(entries)
+    assert spans(plain) == [(1, 3)]  # the related part joins 3 to 1
+    a = run(entries, rules)
+    assert spans(a) == [(1, 2), (3, 3)]
+    assert a.headings["headings"] == 2 and a.headings["passages_changed"] == 2

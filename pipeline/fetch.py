@@ -51,7 +51,7 @@ class FetchResult:
     name: str
     path: Path
     sha256: str
-    status: str  # "cached", "downloaded" or "unpinned"
+    status: str  # "cached", "downloaded", "unpinned" or "skipped" (optional, not in the cache)
 
 
 def download(url: str, dest: Path) -> None:
@@ -153,7 +153,18 @@ def _extract_member(source: Source, f: SourceFile, path: Path) -> None:
 
 def fetch_sources(sources: list[Source], *, pin: bool = False) -> list[FetchResult]:
     """Fetch every file of the given sources."""
-    return [fetch_file(s, f, pin=pin) for s in sources for f in s.files]
+    results = []
+    for s in sources:
+        if s.extra.get("optional") and not all(
+            s.cache_path(f.name).exists() for f in s.files if f.manual
+        ):
+            # e.g. a file that may not be mirrored before permission is granted
+            results += [
+                FetchResult(s.id, f.name, s.cache_path(f.name), "", "skipped") for f in s.files
+            ]
+            continue
+        results += [fetch_file(s, f, pin=pin) for f in s.files]
+    return results
 
 
 def verify_cached(source: Source, name: str) -> Path:

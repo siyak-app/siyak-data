@@ -37,7 +37,9 @@ Other Quranpedia ids considered:
 ## Edition matter and the author's introduction
 
 Found in the M1c review (page-order check and index detection over the whole
-dump, then each run read); applied by the rules in `source.toml`:
+dump, then each run read); applied by the rules in `source.toml`. "introduction"
+marks the author's own introduction, stored as a separate `kind = "introduction"`
+passage at 1:1:
 
 | Rule | Verse(s) | Volume | Pages | What it is |
 |---|---|---|---|---|
@@ -47,12 +49,17 @@ dump, then each run read); applied by the rules in `source.toml`:
 | left out | any | 4 | 665–667 | Index of volume 4 (فهرس الموضوعات) |
 | left out | any | 5 | 647–650 | Index of volume 5 (فهرس الموضوعات) |
 | left out | any | 6 | all | Volume 6: the editor's indexes |
-| moved to 1:1 | 114:1-114:6 | 1 | 13–19 | Author's introduction (مقدّمة المؤلف) |
+| introduction | 114:1-114:6 | 1 | 13–19 | Author's introduction (مقدّمة المؤلف) |
 
 After conversion: 1,374 passages covering 6,236 verses; details in `dist/reports/tafsir-coverage.md`. Source issues reported upstream: `docs/upstream/quranpedia.md`.
 
 ## Conversion
 
+- Passages follow the edition's group headings ("[سورة … : الآيات a الى b]",
+  `passage_headings = true`, M1c decision): Quranpedia copies the reports
+  section of one group to the first verse of the next, which would otherwise join
+  neighbouring groups (e.g. 26:69–157). The coverage report lists the number of
+  headings and of passages that changed.
 - Footnotes: editor footnotes (mostly verse references). Not included (`footnotes = "drop"`, M1c decision K2);
   the count is in the coverage report.
 - Everything else follows `docs/pack-format.md` §4.6: the HTML is reduced to

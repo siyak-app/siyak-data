@@ -10,7 +10,7 @@ from pathlib import Path
 
 from pipeline.build_core import build_core, load_tanzil
 from pipeline.build_morphology import build_morphology_pack
-from pipeline.build_tafsir import build_tafsir_pack, write_reports
+from pipeline.build_tafsir import build_tafsir_pack, is_available, is_tafsir_source, write_reports
 from pipeline.build_translation import build_translation_pack, verse_ids
 from pipeline.compress import compress_pack
 from pipeline.errors import PipelineError
@@ -34,11 +34,8 @@ def morphology_sources(sources: list[Source]) -> list[Source]:
 
 
 def tafsir_sources(sources: list[Source]) -> list[Source]:
-    """Sources whose ``[pack]`` is a Quranpedia tafsir, sorted by pack id."""
-    found = [
-        s for s in sources
-        if s.pack is not None and s.pack.type == "tafsir" and "quranpedia_book" in s.extra
-    ]  # fmt: skip
+    """Sources whose ``[pack]`` is a Quranpedia or QUL tafsir, sorted by pack id."""
+    found = [s for s in sources if is_tafsir_source(s)]
     return sorted(found, key=lambda s: s.pack.id if s.pack else "")
 
 
@@ -66,6 +63,8 @@ def run_build() -> list[Path]:
         )
     clean = {(a.surah, a.ayah): a.text for a in inputs.clean.verses}
     for source in tafsir_sources(sources):
+        if not is_available(source):
+            continue
         sqlite_path = build_tafsir_pack(source, ids, clean, out, built_at)
         written += [sqlite_path, compress_pack(sqlite_path)]
     write_reports(out)

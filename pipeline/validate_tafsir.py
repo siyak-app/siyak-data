@@ -2,8 +2,9 @@
 
 - The published ``.sqlite.zst`` decompresses to the built database; its
   structure and ``pack_info`` are as expected; it installs into content.db.
-- Passages: valid verse ids within one surah, sorted, never overlapping; each
-  has paragraphs numbered from 0, none empty.
+- Passages: valid verse ids within one surah; commentary passages sorted and
+  never overlapping; at most one ``introduction`` passage, passage 1 at 1:1;
+  each has paragraphs numbered from 0, none empty.
 - Paragraphs hold only the tafsir HTML subset; ``part`` is set exactly when
   ``page`` is, and pages are positive.
 - **Text unchanged:** for every passage, the letters of its paragraphs equal
@@ -24,13 +25,12 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from pipeline.build_core import load_tanzil
-from pipeline.build_tafsir import dump_name
+from pipeline.build_tafsir import is_available, source_assembly
 from pipeline.build_translation import require_pack, source_version, verse_ids
 from pipeline.errors import PipelineError
-from pipeline.fetch import verify_cached
 from pipeline.gates import Report, install_into_core_copy, unpack_published
 from pipeline.install import check_pack_structure
-from pipeline.quranpedia import Key, assemble, load_dump, parse_rules
+from pipeline.quranpedia import Key
 from pipeline.schema import SCHEMA_VERSION, read_pack_info
 from pipeline.sources import Source
 from pipeline.tafsir_html import source_letters, subset_letters
@@ -47,7 +47,7 @@ class _Pack:
 
     where: str
     source: Source
-    passages: list[tuple[int, str, int, int]] = field(default_factory=list)
+    passages: list[tuple[int, str, int, int, str]] = field(default_factory=list)
     paragraphs: dict[int, list[Paragraph]] = field(default_factory=dict)
 
 
@@ -74,6 +74,9 @@ def check_tafsir_packs(
     )
     for source in sources:
         pack = require_pack(source)
+        if not is_available(source):
+            report.info.append(f"{pack.id}: optional source not ready (cache or pin), skipped")
+            continue
         with tempfile.TemporaryDirectory(prefix="siyak-validate-") as tmp:
             published = unpack_published(dist / f"{pack.id}.sqlite", Path(tmp), report)
             if published is None:
@@ -98,7 +101,7 @@ def _check_pack(db: Path, source: Source, ctx: _Context, report: Report) -> None
         actual = (info.id, info.type, info.version, info.schema_version, info.source_version)
         report.check(actual == expected, f"{data.where}: pack_info {actual} != {expected}")
         data.passages = conn.execute(
-            "SELECT id, pack_id, verse_from, verse_to FROM tafsir ORDER BY id"
+            "SELECT id, pack_id, verse_from, verse_to, kind FROM tafsir ORDER BY id"
         ).fetchall()
         for tid, idx, text, part, page in conn.execute(
             "SELECT tafsir_id, idx, text, part, page FROM tafsir_paragraphs ORDER BY tafsir_id, idx"
@@ -106,7 +109,7 @@ def _check_pack(db: Path, source: Source, ctx: _Context, report: Report) -> None
             data.paragraphs.setdefault(tid, []).append((idx, text, part, page))
     _check_passages(data, {v: k for k, v in ctx.ids.items()}, report)
     _check_text(data, ctx, report)
-    covered = sum(t - f + 1 for _, _, f, t in data.passages)
+    covered = sum(t - f + 1 for _, _, f, t, kind in data.passages if kind == "commentary")
     minimum = source.extra.get("min_coverage")
     if isinstance(minimum, int) and ctx.profile == "full":
         report.check(covered >= minimum, f"{data.where}: covers {covered}, min_coverage {minimum}")
@@ -124,14 +127,22 @@ def _check_passages(data: _Pack, keys: dict[int, Key], report: Report) -> None:
         f"{where}: tafsir ids are not 1..{len(data.passages)}",
     )
     last_to = 0
-    for tid, pid, vfrom, vto in data.passages:
+    intros = [p for p in data.passages if p[4] == "introduction"]
+    report.check(len(intros) <= 1, f"{where}: {len(intros)} introduction passages, at most 1")
+    for tid, pid, vfrom, vto, kind in data.passages:
         ref = f"{where} passage {tid}"
         report.check(pid == pack_id, f"{ref}: pack_id {pid!r}")
         if not report.check(vfrom in keys and vto in keys and vfrom <= vto, f"{ref}: bad verses"):
             continue
-        report.check(keys[vfrom][0] == keys[vto][0], f"{ref}: crosses surahs")
-        report.check(vfrom > last_to, f"{ref}: overlaps or is out of order")
-        last_to = vto
+        if kind == "introduction":
+            report.check(
+                tid == 1 and keys[vfrom] == keys[vto] == (1, 1),
+                f"{ref}: the introduction must be passage 1, at 1:1",
+            )
+        elif report.check(kind == "commentary", f"{ref}: kind {kind!r}"):
+            report.check(keys[vfrom][0] == keys[vto][0], f"{ref}: crosses surahs")
+            report.check(vfrom > last_to, f"{ref}: overlaps or is out of order")
+            last_to = vto
         rows = data.paragraphs.get(tid, [])
         report.check(bool(rows), f"{ref}: no paragraphs")
         report.check([r[0] for r in rows] == list(range(len(rows))), f"{ref}: idx not 0..n-1")
@@ -154,23 +165,21 @@ def _check_paragraph(ref: str, row: Paragraph, report: Report) -> None:
 
 def _check_text(data: _Pack, ctx: _Context, report: Report) -> None:
     """The stored letters equal the letters of the source sections, passage by passage."""
-    rules = parse_rules(data.source.extra, str(data.source.path))
-    dump = load_dump(verify_cached(data.source, dump_name(data.source)), ctx.ids)
-    assembly = assemble(dump, rules, ctx.verse_text)
-    drop = rules.drop_footnotes
+    assembly, drop = source_assembly(data.source, ctx.ids, ctx.verse_text)
+    intro = [assembly.introduction] if assembly.introduction else []
     expected = {
-        ctx.ids[p.first]: (
+        (ctx.ids[p.first], p.kind): (
             ctx.ids[p.last],
             "".join(source_letters(s.html, drop_footnotes=drop) for s in p.sections),
         )
-        for p in assembly.passages
+        for p in intro + assembly.passages
     }
     report.check(
         len(expected) == len(data.passages),
         f"{data.where}: {len(data.passages)} passages, the source gives {len(expected)}",
     )
-    for tid, _pid, vfrom, vto in data.passages:
-        exp = expected.get(vfrom)
+    for tid, _pid, vfrom, vto, kind in data.passages:
+        exp = expected.get((vfrom, kind))
         got = "".join(subset_letters(r[1]) for r in data.paragraphs.get(tid, []))
         if exp is None or exp != (vto, got):
             report.check(False, f"{data.where} passage {tid}: text differs from the source")
