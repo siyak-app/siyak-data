@@ -14,6 +14,7 @@ import pytest
 
 from pipeline.build import translation_sources
 from pipeline.build_translation import packs_row
+from pipeline.compress import decompress_pack
 from pipeline.errors import PipelineError
 from pipeline.install import install_pack
 from pipeline.schema import SCHEMA_VERSION, apply_content_schema, schema_shape
@@ -30,9 +31,21 @@ def migrations() -> list[str] | None:
     return [f.read_text(encoding="utf-8") for f in files]
 
 
-def test_every_pack_installs(built_fixtures: Path, fixture_sources: None) -> None:
+def test_every_pack_installs(built_fixtures: Path, fixture_sources: None, tmp_path: Path) -> None:
+    # Install what users download: decompress each published .sqlite.zst first.
     sources = translation_sources(load_all())
-    packs = [(built_fixtures / f"{s.pack.id}.sqlite", s) for s in sources if s.pack]
+    packs = [
+        (
+            decompress_pack(
+                built_fixtures / f"{s.pack.id}.sqlite.zst",
+                tmp_path / f"{s.pack.id}.sqlite",
+                max_size=(built_fixtures / f"{s.pack.id}.sqlite").stat().st_size,
+            ),
+            s,
+        )
+        for s in sources
+        if s.pack
+    ]
     assert packs
     conn = install_into_core_copy(built_fixtures / "core.db", packs, migrations())
     verses = conn.execute("SELECT count(*) FROM verses").fetchone()[0]

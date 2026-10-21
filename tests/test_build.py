@@ -1,11 +1,13 @@
 import hashlib
 import shutil
 import sqlite3
+from contextlib import closing
 from pathlib import Path
 
 import pytest
 
 from pipeline.build import run_build
+from pipeline.compress import compress_pack
 from pipeline.normalize import normalize
 from pipeline.validate import run_validate
 
@@ -23,7 +25,7 @@ def test_build_is_reproducible(fixtures_profile: Path) -> None:
     first = {p.name: sha(p) for p in run_build()}
     second = {p.name: sha(p) for p in run_build()}
     assert first == second
-    assert set(first) == {"core.db", "en.pickthall.sqlite"}
+    assert set(first) == {"core.db", "en.pickthall.sqlite", "en.pickthall.sqlite.zst"}
 
 
 def test_core_contents(built_fixtures: Path) -> None:
@@ -91,7 +93,19 @@ def test_gate_catches_missing_translation_row(
 ) -> None:
     dist = tmp_path / "tampered"
     shutil.copytree(built_fixtures, dist)
-    with sqlite3.connect(dist / "en.pickthall.sqlite") as conn:
+    with closing(sqlite3.connect(dist / "en.pickthall.sqlite")) as conn, conn:
         conn.execute("DELETE FROM translations WHERE verse_id = 6222")
+    compress_pack(dist / "en.pickthall.sqlite")
     report = run_validate(dist, "fixtures")
     assert any("en.pickthall.sqlite: missing verse ids, first [6222]" in f for f in report.failures)
+
+
+def test_gate_catches_stale_compressed_pack(
+    built_fixtures: Path, fixture_sources: None, tmp_path: Path
+) -> None:
+    dist = tmp_path / "tampered"
+    shutil.copytree(built_fixtures, dist)
+    with closing(sqlite3.connect(dist / "en.pickthall.sqlite")) as conn, conn:
+        conn.execute("UPDATE translations SET text = 'x' WHERE verse_id = 6222")
+    report = run_validate(dist, "fixtures")
+    assert any("does not decompress to en.pickthall.sqlite" in f for f in report.failures)

@@ -1,7 +1,8 @@
 """``manifest.json`` (spec §6.3) from the built packs and their ``source.toml``.
 
 Each pack entry combines the ``[pack]`` metadata with the size and sha256 of
-the built file. Packs with ``publish = false`` are built and validated but never
+the published (compressed) file and its ``installed_size`` (decompressed
+bytes). Packs with ``publish = false`` are built and validated but never
 written here. Bundle members that are not part of this release are dropped
 with a warning, and a bundle left empty is omitted.
 """
@@ -11,10 +12,13 @@ from __future__ import annotations
 import json
 import os
 import sqlite3
+import tempfile
+from contextlib import closing
 from pathlib import Path
 from typing import Any
 
 from pipeline.build_translation import require_pack
+from pipeline.compress import MAX_PACK_SIZE, decompress_pack
 from pipeline.errors import PipelineError
 from pipeline.fetch import sha256_file
 from pipeline.paths import repo_root
@@ -22,7 +26,7 @@ from pipeline.schema import build_timestamp, read_pack_info
 from pipeline.sources import Source
 
 #: File name of each pack type in a release (spec §6.1).
-PACK_FILE = {"translation": "{id}.sqlite"}
+PACK_FILE = {"translation": "{id}.sqlite.zst"}
 DEV_TAG = "data-dev"
 
 
@@ -38,8 +42,11 @@ def pack_file_name(source: Source) -> str:
 def pack_entry(source: Source, path: Path, url: str) -> dict[str, Any]:
     """The manifest entry of one built pack."""
     pack = require_pack(source)
-    with sqlite3.connect(path) as conn:
-        info = read_pack_info(conn)
+    with tempfile.TemporaryDirectory(prefix="siyak-manifest-") as tmp:
+        unpacked = decompress_pack(path, Path(tmp) / "pack.sqlite", MAX_PACK_SIZE)
+        installed_size = unpacked.stat().st_size
+        with closing(sqlite3.connect(unpacked)) as conn:
+            info = read_pack_info(conn)
     if (info.id, info.version) != (pack.id, pack.version):
         raise PipelineError(
             f"{path.name}: built as {info.id} {info.version}, source.toml says "
@@ -54,6 +61,7 @@ def pack_entry(source: Source, path: Path, url: str) -> dict[str, Any]:
         "version": pack.version,
         "min_app_version": pack.min_app_version,
         "size": path.stat().st_size,
+        "installed_size": installed_size,
         "sha256": sha256_file(path),
         "url": url,
         "license": pack.license,

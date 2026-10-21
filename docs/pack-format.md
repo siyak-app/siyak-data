@@ -14,14 +14,11 @@ A release (tag `data-YYYY.MM.N`) contains:
 | Asset | Description |
 |---|---|
 | `core.db` | The database bundled with the app installer (§3). Not listed in the manifest |
-| `<pack id>.sqlite` | One file per SQLite pack (§4) |
-| `<pack id>.tar.zst` | One file per archive pack (§4.3; morphology from M1b) |
+| `<pack id>.sqlite.zst` | One file per SQLite pack, zstd-compressed (§4, §4.3) |
+| `<pack id>.tar.zst` | One file per archive pack (§4.4; morphology from M1b) |
 | `manifest.json` | Describes every published pack (§6) |
 | `pricing.json` | AI model prices for cost estimates (spec §9.4) |
 | `SHA256SUMS` | sha256 of every asset |
-
-> **Open decision (M1a):** whether SQLite packs are distributed zstd-compressed
-> as `<pack id>.sqlite.zst`. See §8.
 
 ## 2. The content schema
 
@@ -100,13 +97,15 @@ The app reads `pack_info` before installing and refuses the file unless
 |---|---|
 | `translation` | `translations (pack_id, verse_id, text)`, primary key `(pack_id, verse_id)`, `WITHOUT ROWID` |
 | `tafsir` | `tafsir`, `tafsir_paragraphs` (spec §5.2): added in M1c |
-| `morphology` | `words`, `roots`, `lemmas`, `word_segments` (spec §5.3): added in M1b, inside an archive (§4.3) |
+| `morphology` | `words`, `roots`, `lemmas`, `word_segments` (spec §5.3): added in M1b, inside an archive (§4.4) |
 
 A translation pack has exactly one row per verse (6,236) and no empty text.
 
 ### 4.2 Installation (reference: `pipeline/install.py`)
 
-Packs are untrusted input (spec §14.3). The app:
+Packs are untrusted input (spec §14.3). After verifying the sha256 of the
+downloaded `.sqlite.zst`, the app decompresses it to a temporary `.sqlite`
+(§4.3), then:
 
 1. `ATTACH`es the pack;
 2. checks `sqlite_master`: only `table` and `index` objects; tables from the
@@ -127,7 +126,30 @@ The `packs` row must be written first and must never be written with
 row last would also violate the foreign key on a first install. The
 schema-compat test caught this; spec §6.4 step 6 needs the matching edit.
 
-### 4.3 Archive packs (`.tar.zst`)
+### 4.3 Compression
+
+Every SQLite pack is published as `<pack id>.sqlite.zst`; `core.db` is not
+compressed (the installer compresses it). Decided in the M1a review with these
+measurements (zstd 1.5, `python-zstandard` 0.25):
+
+| File | SQLite | zstd-3 | zstd-19 | Decompression |
+|---|---|---|---|---|
+| Rūḥ al-Maʿānī (largest tafsir, rough conversion) | 55.4 MB | 10.5 MB | 7.1 MB (13 %) | 30 ms |
+| Mafātīḥ al-Ghayb (rough conversion) | 55.8 MB | 11.4 MB | 6.3 MB (11 %) | 32 ms |
+| al-Jalālayn (rough conversion) | 5.1 MB | 0.9 MB | 0.6 MB (12 %) | 2 ms |
+| `en.pickthall` | 1.0 MB | 0.31 MB | 0.26 MB (25 %) | 1 ms |
+
+Rules (implemented in `pipeline/compress.py`):
+
+- a **single zstd frame**, level **19**, single-threaded (deterministic output),
+  with the **content size** and a **checksum** in the frame header;
+- the manifest's `size` and `sha256` describe the `.zst` file;
+  `installed_size` is the decompressed size;
+- the app stream-decompresses to a temporary file and **refuses** the pack if
+  the frame declares, or the stream produces, more than `installed_size` bytes;
+  the temporary file is deleted afterwards (spec §6.4 step 7).
+
+### 4.4 Archive packs (`.tar.zst`)
 
 Used when a pack must ship files besides its database (morphology: the
 original QAC file and its NOTICE). A zstd-compressed tar containing one SQLite
@@ -169,9 +191,10 @@ files and each `source.toml` `[pack]` table. Shape (spec §6.3):
       "author": "Marmaduke Pickthall",
       "version": "1.0.0",
       "min_app_version": "0.1.0",
-      "size": 1007616,
+      "size": 256725,
+      "installed_size": 1007616,
       "sha256": "…",
-      "url": "https://github.com/siyak/siyak-data/releases/download/data-2026.10.0/en.pickthall.sqlite",
+      "url": "https://github.com/siyak/siyak-data/releases/download/data-2026.10.0/en.pickthall.sqlite.zst",
       "license": "Public domain",
       "license_terms": { "tr": ["…"], "en": ["…"] },
       "attribution": "…",
@@ -182,6 +205,9 @@ files and each `source.toml` `[pack]` table. Shape (spec §6.3):
 }
 ```
 
+- `size` and `sha256` are those of the downloaded file (`.sqlite.zst`);
+  `installed_size` is the decompressed size, used for the disk-space display
+  and as the decompression limit (§4.3).
 - `title` is always a `{ "tr", "en" }` object; optional `description` likewise.
 - Optional `meta` (type-specific) and `requires` (dependencies) are added by
   later pack types (vectors, model).
@@ -197,11 +223,3 @@ files and each `source.toml` `[pack]` table. Shape (spec §6.3):
 
 The stable English keys of `word_segments.features` are specified with the
 morphology pack in M1b. The app's i18n labels are keyed by them.
-
-## 8. Open decision: compression
-
-See the M1a report. If approved, every SQLite pack except core.db is published
-as `<id>.sqlite.zst`, a single zstd frame, and the manifest gains
-`installed_size` (uncompressed bytes). `size` and `sha256` describe the
-downloaded `.zst`; the app stream-decompresses to a temporary `.sqlite`,
-refusing output larger than `installed_size`, before step 1 of §4.2.

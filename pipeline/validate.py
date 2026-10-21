@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import json
 import sqlite3
+import tempfile
 from collections import Counter
 from collections.abc import Iterable
 from dataclasses import dataclass, field
@@ -22,6 +23,7 @@ from pathlib import Path
 from pipeline.build import TANZIL, translation_sources
 from pipeline.build_core import METADATA
 from pipeline.build_translation import packs_row, require_pack, source_version
+from pipeline.compress import SUFFIX, decompress_pack
 from pipeline.errors import PipelineError
 from pipeline.fetch import verify_cached
 from pipeline.install import check_pack_structure, install_pack
@@ -214,6 +216,30 @@ def check_translation_pack(
         report.check(False, f"{where}: install failed: {exc}")
 
 
+def unpack_published(sqlite_path: Path, tmp: Path, report: Report) -> Path | None:
+    """Decompress ``<pack>.sqlite.zst`` the way the app does and check it equals the build.
+
+    Returns the decompressed file (what users install), or None on failure.
+    """
+    zst = sqlite_path.with_name(sqlite_path.name + SUFFIX)
+    if not report.check(zst.exists(), f"{zst.name}: not built"):
+        return None
+    if not report.check(sqlite_path.exists(), f"{sqlite_path.name}: not built"):
+        return None
+    out = tmp / sqlite_path.name
+    try:
+        decompress_pack(zst, out, max_size=sqlite_path.stat().st_size)
+    except PipelineError as exc:
+        report.check(False, str(exc))
+        return None
+    same = out.read_bytes() == sqlite_path.read_bytes()
+    report.check(same, f"{zst.name}: does not decompress to {sqlite_path.name}")
+    report.info.append(
+        f"{zst.name}: {zst.stat().st_size:,} bytes ({sqlite_path.stat().st_size:,} uncompressed)"
+    )
+    return out if same else None
+
+
 def install_into_core_copy(
     core: Path, packs: list[tuple[Path, Source]], schema_sql: list[str] | None = None
 ) -> sqlite3.Connection:
@@ -301,7 +327,10 @@ def run_validate(dist: Path, profile: str) -> Report:
 
     for source in translation_sources(sources):
         pack = require_pack(source)
-        check_translation_pack(dist / f"{pack.id}.sqlite", source, verse_ids, core, report)
+        with tempfile.TemporaryDirectory(prefix="siyak-validate-") as tmp:
+            published = unpack_published(dist / f"{pack.id}.sqlite", Path(tmp), report)
+            if published is not None:
+                check_translation_pack(published, source, verse_ids, core, report)
         if pack.bundled:
             with sqlite3.connect(core) as conn:
                 rows = conn.execute(

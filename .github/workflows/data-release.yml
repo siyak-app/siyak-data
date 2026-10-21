@@ -31,7 +31,7 @@ jobs:
       - run: uv run siyak-data manifest --tag "$GITHUB_REF_NAME"
       - name: Checksums
         working-directory: dist
-        run: sha256sum core.db ./*.sqlite manifest.json pricing.json > SHA256SUMS
+        run: sha256sum core.db ./*.sqlite.zst manifest.json pricing.json > SHA256SUMS
       - name: Create the GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
@@ -47,7 +47,7 @@ jobs:
           gh release create "$GITHUB_REF_NAME" \
             --title "$GITHUB_REF_NAME" \
             --notes-file notes.md \
-            dist/core.db dist/*.sqlite dist/manifest.json dist/pricing.json \
+            dist/core.db dist/*.sqlite.zst dist/manifest.json dist/pricing.json \
             dist/SHA256SUMS dist/validation-report.txt
 
       # Ask the app repository to copy manifest.json and pricing.json to the

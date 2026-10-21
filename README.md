@@ -9,7 +9,8 @@ downloads:
 - **`core.db`**: bundled with the installer: the Tanzil Quran text (Uthmani and
   Simple Clean), surah metadata, and the bundled translations;
 - **packs**: translations (and, in later stages, tafsir and morphology)
-  downloaded from the app's Packs screen;
+  downloaded from the app's Packs screen, published zstd-compressed
+  (`<id>.sqlite.zst`);
 - **`manifest.json`** and **`pricing.json`**: describe the packs and AI model prices.
 
 Code: `MIT OR Apache-2.0`. **Data keeps its own licenses**: see
@@ -22,7 +23,7 @@ Requires Python ≥ 3.12 and [uv](https://docs.astral.sh/uv/).
 ```sh
 uv sync
 uv run siyak-data fetch      # download pinned sources into .cache/ (sha256-checked)
-uv run siyak-data build      # build dist/core.db and dist/<pack>.sqlite
+uv run siyak-data build      # build dist/core.db and dist/<pack>.sqlite.zst
 uv run siyak-data validate   # run the validation gates
 uv run siyak-data manifest   # write dist/manifest.json and dist/pricing.json
 ```

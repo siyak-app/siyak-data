@@ -11,7 +11,7 @@ from pipeline.sources import load_all
 
 SPEC_PACK_KEYS = {
     "id", "type", "lang", "title", "author", "version", "min_app_version", "size",
-    "sha256", "url", "license", "license_terms", "attribution", "citation",
+    "installed_size", "sha256", "url", "license", "license_terms", "attribution", "citation",
 }  # fmt: skip
 
 
@@ -20,12 +20,14 @@ def test_manifest_shape(built_fixtures: Path, fixture_sources: None) -> None:
     assert set(manifest) == {"schema_version", "generated_at", "pricing_url", "packs", "bundles"}
     (entry,) = manifest["packs"]
     assert set(entry) == SPEC_PACK_KEYS
-    assert entry["url"].endswith("/download/data-2026.10.0/en.pickthall.sqlite")
+    assert entry["url"].endswith("/download/data-2026.10.0/en.pickthall.sqlite.zst")
     assert entry["title"] == {
         "tr": "Pickthall İngilizce Meali",
         "en": "The Meaning of the Glorious Koran",
     }
-    assert entry["size"] == (built_fixtures / "en.pickthall.sqlite").stat().st_size
+    assert entry["size"] == (built_fixtures / "en.pickthall.sqlite.zst").stat().st_size
+    assert entry["installed_size"] == (built_fixtures / "en.pickthall.sqlite").stat().st_size
+    assert entry["size"] < entry["installed_size"]
     assert manifest["bundles"] == []  # morphology.qac and ar.jalalayn come in M1b/M1c
     assert any("recommended" in w for w in warnings)
 

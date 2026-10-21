@@ -1,4 +1,8 @@
-"""``build``: core.db plus one file per pack, written to dist/."""
+"""``build``: core.db plus one file per pack, written to dist/.
+
+Each SQLite pack is written as ``<id>.sqlite`` (kept for inspection and
+validation) and compressed to ``<id>.sqlite.zst``, the file that is published.
+"""
 
 from __future__ import annotations
 
@@ -6,6 +10,7 @@ from pathlib import Path
 
 from pipeline.build_core import build_core, load_tanzil
 from pipeline.build_translation import build_translation_pack, verse_ids
+from pipeline.compress import compress_pack
 from pipeline.errors import PipelineError
 from pipeline.paths import dist_dir
 from pipeline.schema import build_timestamp
@@ -33,5 +38,7 @@ def run_build() -> list[Path]:
     bundled = [s for s in translations if s.pack is not None and s.pack.bundled]
     written = [build_core(out / "core.db", tanzil=tanzil, bundled=bundled, built_at=built_at)]
     ids = verse_ids(load_tanzil(tanzil).metadata)
-    written += [build_translation_pack(s, ids, out, built_at) for s in translations]
+    for source in translations:
+        sqlite_path = build_translation_pack(source, ids, out, built_at)
+        written += [sqlite_path, compress_pack(sqlite_path)]
     return written

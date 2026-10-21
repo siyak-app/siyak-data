@@ -8,7 +8,8 @@ veri hattı. Uygulamanın birlikte dağıttığı ve indirdiği içeriği üreti
 - **`core.db`**: kurulum dosyasıyla gelir: Tanzil Kur'an metni (Osmanî ve
   sade/harekesiz), sure bilgileri ve birlikte gelen mealler;
 - **paketler**: uygulamanın Paketler ekranından indirilen mealler (sonraki
-  aşamalarda tefsir ve morfoloji);
+  aşamalarda tefsir ve morfoloji); zstd ile sıkıştırılmış olarak yayımlanır
+  (`<id>.sqlite.zst`);
 - **`manifest.json`** ve **`pricing.json`**: paketleri ve yapay zekâ model fiyatlarını tanımlar.
 
 Kod: `MIT OR Apache-2.0`. **Veriler kendi lisanslarını korur**:
@@ -21,7 +22,7 @@ Python ≥ 3.12 ve [uv](https://docs.astral.sh/uv/) gerekir.
 ```sh
 uv sync
 uv run siyak-data fetch      # sabitlenmiş kaynakları .cache/ içine indir (sha256 kontrollü)
-uv run siyak-data build      # dist/core.db ve dist/<paket>.sqlite üret
+uv run siyak-data build      # dist/core.db ve dist/<paket>.sqlite.zst üret
 uv run siyak-data validate   # doğrulama kapılarını çalıştır
 uv run siyak-data manifest   # dist/manifest.json ve dist/pricing.json yaz
 ```
