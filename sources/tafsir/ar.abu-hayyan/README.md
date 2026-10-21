@@ -34,6 +34,18 @@ Other Quranpedia ids considered:
 
 - 27762: al-Nahr al-Mādd min al-Baḥr al-Muḥīṭ, the author's abridgement, a different work.
 
+## Edition matter and the author's introduction
+
+Found in the M1c review (page-order check and index detection over the whole
+dump, then each run read); applied by the rules in `source.toml`:
+
+| Rule | Verse(s) | Volume | Pages | What it is |
+|---|---|---|---|---|
+| left out | 114:1-114:6 | 1 | 3–7 | Publisher's introduction (مقدمة الناشر) and editorial method |
+| moved to 1:1 | 114:1-114:6 | 1 | 9–26 | Author's preface (خطبة الكتاب) |
+
+After conversion: 340 passages covering 6,236 verses; details in `dist/reports/tafsir-coverage.md`. Source issues reported upstream: `docs/upstream/quranpedia.md`.
+
 ## Conversion
 
 - Footnotes: editor footnotes (mostly verse references). Not included (`footnotes = "drop"`, M1c decision K2);

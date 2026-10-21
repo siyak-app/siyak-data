@@ -35,6 +35,17 @@ Other Quranpedia ids considered:
 
 - None: no other Quranpedia tafsir dump carries this work.
 
+## Edition matter and the author's introduction
+
+Found in the M1c review (page-order check and index detection over the whole
+dump, then each run read); applied by the rules in `source.toml`:
+
+| Rule | Verse(s) | Volume | Pages | What it is |
+|---|---|---|---|---|
+| moved to 1:1 | 114:1 | 1 | 3–35 | Author's preface (خطبة المفسر) and introduction |
+
+After conversion: 488 passages covering 6,236 verses; details in `dist/reports/tafsir-coverage.md`. Source issues reported upstream: `docs/upstream/quranpedia.md`.
+
 ## Conversion
 
 - Footnotes: editor footnotes (including notes on the author's own marginalia). Not included (`footnotes = "drop"`, M1c decision K2);

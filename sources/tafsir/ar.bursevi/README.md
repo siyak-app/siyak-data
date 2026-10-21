@@ -34,6 +34,12 @@ Other Quranpedia ids considered:
 
 - None: no other Quranpedia tafsir dump carries this work.
 
+## Edition matter and the author's introduction
+
+None found: the dump holds only the author's text (M1c review).
+
+After conversion: 1,153 passages covering 6,236 verses; details in `dist/reports/tafsir-coverage.md`. Source issues reported upstream: `docs/upstream/quranpedia.md`.
+
 ## Conversion
 
 - Footnotes: footnotes of the printed edition (e.g. references to the Mathnawī, in Persian). Not included (`footnotes = "drop"`, M1c decision K2);

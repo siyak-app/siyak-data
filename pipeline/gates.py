@@ -7,6 +7,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from pipeline.build_translation import packs_row
+from pipeline.compress import SUFFIX, decompress_pack
 from pipeline.errors import PipelineError
 from pipeline.install import install_pack
 from pipeline.schema import apply_content_schema
@@ -59,3 +60,27 @@ def install_into_core_copy(
     if problems:
         raise PipelineError(f"foreign key violations after install: {problems[:5]}")
     return conn
+
+
+def unpack_published(sqlite_path: Path, tmp: Path, report: Report) -> Path | None:
+    """Decompress ``<pack>.sqlite.zst`` the way the app does and check it equals the build.
+
+    Returns the decompressed file (what users install), or None on failure.
+    """
+    zst = sqlite_path.with_name(sqlite_path.name + SUFFIX)
+    if not report.check(zst.exists(), f"{zst.name}: not built"):
+        return None
+    if not report.check(sqlite_path.exists(), f"{sqlite_path.name}: not built"):
+        return None
+    out = tmp / sqlite_path.name
+    try:
+        decompress_pack(zst, out, max_size=sqlite_path.stat().st_size)
+    except PipelineError as exc:
+        report.check(False, str(exc))
+        return None
+    same = out.read_bytes() == sqlite_path.read_bytes()
+    report.check(same, f"{zst.name}: does not decompress to {sqlite_path.name}")
+    report.info.append(
+        f"{zst.name}: {zst.stat().st_size:,} bytes ({sqlite_path.stat().st_size:,} uncompressed)"
+    )
+    return out if same else None

@@ -19,7 +19,7 @@ def test_manifest_shape(built_fixtures: Path, fixture_sources: None) -> None:
     manifest, warnings = build_manifest(load_all(), built_fixtures, tag="data-2026.10.0")
     assert set(manifest) == {"schema_version", "generated_at", "pricing_url", "packs", "bundles"}
     packs = {p["id"]: p for p in manifest["packs"]}
-    assert sorted(packs) == ["en.pickthall", "morphology.qac"]
+    assert sorted(packs) == ["ar.jalalayn", "ar.razi", "en.pickthall", "morphology.qac"]
     entry = packs["en.pickthall"]
     assert set(entry) == SPEC_PACK_KEYS
     assert entry["url"].endswith("/download/data-2026.10.0/en.pickthall.sqlite.zst")
@@ -33,11 +33,19 @@ def test_manifest_shape(built_fixtures: Path, fixture_sources: None) -> None:
     morphology = packs["morphology.qac"]
     assert morphology["url"].endswith("/download/data-2026.10.0/morphology.qac.tar.zst")
     assert morphology["size"] < morphology["installed_size"]
-    # ar.jalalayn comes in M1c; until then the bundle holds the morphology pack only.
+    tafsir = packs["ar.jalalayn"]
+    assert set(tafsir) == SPEC_PACK_KEYS | {"description"}
+    assert tafsir["type"] == "tafsir"
+    assert set(tafsir["description"]) == {"tr", "en"}
+    assert tafsir["url"].endswith("/download/data-2026.10.0/ar.jalalayn.sqlite.zst")
+    assert (
+        tafsir["attribution"] == "Source: Quranpedia.net · dump 2026-10-20 (https://quranpedia.net)"
+    )
+    assert tafsir["installed_size"] == (built_fixtures / "ar.jalalayn.sqlite").stat().st_size
     assert [(b["id"], b["packs"]) for b in manifest["bundles"]] == [
-        ("recommended", ["morphology.qac"])
+        ("recommended", ["morphology.qac", "ar.jalalayn"])
     ]
-    assert any("ar.jalalayn" in w for w in warnings)
+    assert not warnings
 
 
 def test_unpublished_pack_is_left_out(built_fixtures: Path, fixture_sources: None) -> None:

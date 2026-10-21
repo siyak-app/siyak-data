@@ -31,6 +31,15 @@ note = "Dump 2026-10-20; file built_at 2026-08-10T20:36:03+00:00; 17,981,885 byt
 # Settings for pipeline/build_tafsir.py (docs/pack-format.md §4.6).
 quranpedia_book = 352
 footnotes = "drop"   # editor footnotes of the printed edition (M1c decision K2)
+min_coverage = 6236   # verses covered by the pinned dump; validate fails below this
+
+# Edition matter left out and the author's introduction moved to 1:1
+# (M1c decisions; evidence in README.md, counts in the coverage report).
+[[build.exclude]]
+verse = "114:6"
+part = "32"
+pages = [379, 380]
+reason = "Printer's colophon (خاتمة الطبع)"
 
 [pack]
 id = "ar.razi"

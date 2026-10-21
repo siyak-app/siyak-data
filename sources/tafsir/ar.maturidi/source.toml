@@ -31,6 +31,20 @@ note = "Dump 2026-10-20; file built_at 2026-08-10T20:36:31+00:00; 5,102,476 byte
 # Settings for pipeline/build_tafsir.py (docs/pack-format.md §4.6).
 quranpedia_book = 468
 footnotes = "drop"   # editor footnotes of the printed edition (M1c decision K2)
+min_coverage = 6223   # verses covered by the pinned dump; validate fails below this
+
+# Edition matter left out and the author's introduction moved to 1:1
+# (M1c decisions; evidence in README.md, counts in the coverage report).
+[[build.exclude]]
+verse = "3:200"
+part = "1"
+pages = [3, 348]
+reason = "Editor's study (مقدمة التحقيق)"
+[[build.move_to_start]]
+verse = "3:200"
+part = "1"
+pages = [349, 349]
+reason = "Author's introduction (مقدمة المصنف)"
 
 [pack]
 id = "ar.maturidi"

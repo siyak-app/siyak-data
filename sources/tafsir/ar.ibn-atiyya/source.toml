@@ -31,6 +31,43 @@ note = "Dump 2026-10-20; file built_at 2026-08-10T20:35:37+00:00; 5,202,105 byte
 # Settings for pipeline/build_tafsir.py (docs/pack-format.md §4.6).
 quranpedia_book = 350
 footnotes = "drop"   # editor footnotes of the printed edition (M1c decision K2)
+min_coverage = 6236   # verses covered by the pinned dump; validate fails below this
+
+# Edition matter left out and the author's introduction moved to 1:1
+# (M1c decisions; evidence in README.md, counts in the coverage report).
+[[build.exclude]]
+verse = "114:1-114:6"
+part = "1"
+pages = [3, 29]
+reason = "Editor's introduction"
+[[build.move_to_start]]
+verse = "114:1-114:6"
+part = "1"
+pages = [33, 59]
+reason = "Author's introduction ([مقدمة])"
+[[build.exclude]]
+part = "1"
+pages = [563, 566]
+reason = "Table of contents of volume 1 (فهرس المحتويات)"
+[[build.exclude]]
+part = "2"
+pages = [561, 565]
+reason = "Table of contents of volume 2 (فهرس المحتويات)"
+[[build.exclude]]
+part = "3"
+pages = [548, 552]
+reason = "Table of contents of volume 3 (فهرس المحتويات)"
+[[build.exclude]]
+part = "4"
+pages = [575, 581]
+reason = "Table of contents of volume 4 (فهرس المحتويات)"
+[[build.exclude]]
+part = "5"
+pages = [543, 549]
+reason = "Table of contents of volume 5 (فهرس المحتويات)"
+[[build.exclude]]
+part = "6"
+reason = "Volume 6: the editor's indexes"
 
 [pack]
 id = "ar.ibn-atiyya"

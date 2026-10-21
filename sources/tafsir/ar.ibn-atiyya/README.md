@@ -34,6 +34,24 @@ Other Quranpedia ids considered:
 
 - None: no other Quranpedia tafsir dump carries this work.
 
+## Edition matter and the author's introduction
+
+Found in the M1c review (page-order check and index detection over the whole
+dump, then each run read); applied by the rules in `source.toml`:
+
+| Rule | Verse(s) | Volume | Pages | What it is |
+|---|---|---|---|---|
+| left out | 114:1-114:6 | 1 | 3–29 | Editor's introduction |
+| left out | any | 1 | 563–566 | Table of contents of volume 1 (فهرس المحتويات) |
+| left out | any | 2 | 561–565 | Table of contents of volume 2 (فهرس المحتويات) |
+| left out | any | 3 | 548–552 | Table of contents of volume 3 (فهرس المحتويات) |
+| left out | any | 4 | 575–581 | Table of contents of volume 4 (فهرس المحتويات) |
+| left out | any | 5 | 543–549 | Table of contents of volume 5 (فهرس المحتويات) |
+| left out | any | 6 | all | Volume 6: the editor's indexes |
+| moved to 1:1 | 114:1-114:6 | 1 | 33–59 | Author's introduction ([مقدمة]) |
+
+After conversion: 1,578 passages covering 6,236 verses; details in `dist/reports/tafsir-coverage.md`. Source issues reported upstream: `docs/upstream/quranpedia.md`.
+
 ## Conversion
 
 - Footnotes: editor footnotes. Not included (`footnotes = "drop"`, M1c decision K2);

@@ -34,6 +34,17 @@ Other Quranpedia ids considered:
 
 - None: no other Quranpedia tafsir dump carries this work.
 
+## Edition matter and the author's introduction
+
+Found in the M1c review (page-order check and index detection over the whole
+dump, then each run read); applied by the rules in `source.toml`:
+
+| Rule | Verse(s) | Volume | Pages | What it is |
+|---|---|---|---|---|
+| moved to 1:1 | 114:6 | المقدمة | 1–4 | Author's introduction (مقدمة التفسير) |
+
+After conversion: 2,020 passages covering 6,234 verses; details in `dist/reports/tafsir-coverage.md`. Source issues reported upstream: `docs/upstream/quranpedia.md`.
+
 ## Conversion
 
 - Footnotes: footnotes of the printed edition, mostly Ibn al-Munayyir's al-Intiṣāf (d. 683/1284, classical) plus notes by the edition's corrector; dropped in v1 with the others (K2), a candidate for `footnotes = "keep"` later. Not included (`footnotes = "drop"`, M1c decision K2);

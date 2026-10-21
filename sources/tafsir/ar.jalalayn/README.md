@@ -31,11 +31,17 @@ verses with identical text; 1.6 million characters of text;
 
 **Two authors.** The book index names only al-Maḥallī (`author`). Al-Maḥallī wrote the commentary on al-Kahf to al-Nās and on al-Fātiḥa; al-Suyūṭī completed al-Baqara to al-Isrāʾ after his death. The pack credits both.
 
-**Page artifacts.** Some 692 content items consist only of a page-header residue such as `١ -` or `١٥ -`, and a few such residues end a real item. They are kept verbatim (M1c decision K5), listed in the coverage report and reported to Quranpedia (docs/upstream/quranpedia.md).
+**Page artifacts.** 692 content items consist only of a page-header residue such as `١ -` or `١٥ -`, and 4,571 items end with one. They are kept verbatim (M1c decision K5), listed in the coverage report and reported to Quranpedia (docs/upstream/quranpedia.md).
 
 Other Quranpedia ids considered:
 
 - 27757: Ḥāshiyat al-Ṣāwī ʿalā Tafsīr al-Jalālayn, a commentary on the work, not the work itself.
+
+## Edition matter and the author's introduction
+
+None found: the dump holds only the author's text (M1c review).
+
+After conversion: 6,224 passages covering 6,226 verses; details in `dist/reports/tafsir-coverage.md`. Source issues reported upstream: `docs/upstream/quranpedia.md`.
 
 ## Conversion
 

@@ -31,6 +31,40 @@ note = "Dump 2026-10-20; file built_at 2026-08-10T20:36:18+00:00; 9,422,355 byte
 # Settings for pipeline/build_tafsir.py (docs/pack-format.md §4.6).
 quranpedia_book = 343
 footnotes = "drop"   # editor footnotes of the printed edition (M1c decision K2)
+min_coverage = 6236   # verses covered by the pinned dump; validate fails below this
+
+# Edition matter left out and the author's introduction moved to 1:1
+# (M1c decisions; evidence in README.md, counts in the coverage report).
+[[build.exclude]]
+verse = "114:1-114:6"
+part = "1"
+pages = [5, 12]
+reason = "Editor's introduction (التعريف بالمؤلف والكتاب)"
+[[build.move_to_start]]
+verse = "114:1-114:6"
+part = "1"
+pages = [13, 19]
+reason = "Author's introduction (مقدّمة المؤلف)"
+[[build.exclude]]
+part = "1"
+pages = [629, 632]
+reason = "Index of volume 1 (فهرس الجزء الأول)"
+[[build.exclude]]
+verse = "4:176"
+part = "2"
+pages = [4, 4]
+reason = "Editor's note on the Quran text (تنبيه)"
+[[build.exclude]]
+part = "4"
+pages = [665, 667]
+reason = "Index of volume 4 (فهرس الموضوعات)"
+[[build.exclude]]
+part = "5"
+pages = [647, 650]
+reason = "Index of volume 5 (فهرس الموضوعات)"
+[[build.exclude]]
+part = "6"
+reason = "Volume 6: the editor's indexes"
 
 [pack]
 id = "ar.shawkani"

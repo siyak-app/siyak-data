@@ -19,13 +19,12 @@ from collections import Counter
 from collections.abc import Iterable
 from pathlib import Path
 
-from pipeline.build import TANZIL, morphology_sources, translation_sources
+from pipeline.build import TANZIL, morphology_sources, tafsir_sources, translation_sources
 from pipeline.build_core import CORE_VERSION, METADATA, UTHMANI
 from pipeline.build_translation import require_pack, source_version
-from pipeline.compress import SUFFIX, decompress_pack
 from pipeline.errors import PipelineError
 from pipeline.fetch import verify_cached
-from pipeline.gates import Report, install_into_core_copy
+from pipeline.gates import Report, install_into_core_copy, unpack_published
 from pipeline.install import check_pack_structure
 from pipeline.normalize import REMOVALS, normalize, rule_counts
 from pipeline.paths import repo_root
@@ -33,6 +32,7 @@ from pipeline.schema import SCHEMA_VERSION, apply_content_schema, read_pack_info
 from pipeline.sources import Source, load_all
 from pipeline.tanzil import parse_metadata
 from pipeline.validate_morphology import check_alignment, check_morphology_pack
+from pipeline.validate_tafsir import check_tafsir_packs
 
 FULL_SURAHS = 114
 FULL_VERSES = 6236
@@ -224,30 +224,6 @@ def check_translation_pack(
         report.check(False, f"{where}: install failed: {exc}")
 
 
-def unpack_published(sqlite_path: Path, tmp: Path, report: Report) -> Path | None:
-    """Decompress ``<pack>.sqlite.zst`` the way the app does and check it equals the build.
-
-    Returns the decompressed file (what users install), or None on failure.
-    """
-    zst = sqlite_path.with_name(sqlite_path.name + SUFFIX)
-    if not report.check(zst.exists(), f"{zst.name}: not built"):
-        return None
-    if not report.check(sqlite_path.exists(), f"{sqlite_path.name}: not built"):
-        return None
-    out = tmp / sqlite_path.name
-    try:
-        decompress_pack(zst, out, max_size=sqlite_path.stat().st_size)
-    except PipelineError as exc:
-        report.check(False, str(exc))
-        return None
-    same = out.read_bytes() == sqlite_path.read_bytes()
-    report.check(same, f"{zst.name}: does not decompress to {sqlite_path.name}")
-    report.info.append(
-        f"{zst.name}: {zst.stat().st_size:,} bytes ({sqlite_path.stat().st_size:,} uncompressed)"
-    )
-    return out if same else None
-
-
 def check_sources(sources: list[Source], report: Report) -> None:
     """Every pinned input still matches, and pack metadata is complete."""
     for source in sources:
@@ -329,6 +305,7 @@ def run_validate(dist: Path, profile: str) -> Report:
                 gate(dist, source, core, report)
             except PipelineError as exc:
                 report.check(False, f"{require_pack(source).id}: {exc}")
+    check_tafsir_packs(dist, tafsir_sources(sources), tanzil, core, report, profile=profile)
     for path in sorted(dist.glob("*.db")) + sorted(dist.glob("*.sqlite")):
         report.info.append(f"{path.name}: {path.stat().st_size:,} bytes")
     report.info.append(

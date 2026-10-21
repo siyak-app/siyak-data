@@ -34,6 +34,17 @@ Other Quranpedia ids considered:
 
 - 1499: same title, full coverage, but no edition, publisher or editor in the metadata, so the edition cannot be verified (spec §6.6).
 
+## Edition matter and the author's introduction
+
+Found in the M1c review (page-order check and index detection over the whole
+dump, then each run read); applied by the rules in `source.toml`:
+
+| Rule | Verse(s) | Volume | Pages | What it is |
+|---|---|---|---|---|
+| moved to 1:1 | 114:6 | 1 | 9–19 | Author's introduction (مقدمة المؤلف) |
+
+After conversion: 2,785 passages covering 5,483 verses; details in `dist/reports/tafsir-coverage.md`. Source issues reported upstream: `docs/upstream/quranpedia.md`.
+
 ## Conversion
 
 - Footnotes: editor footnotes. Not included (`footnotes = "drop"`, M1c decision K2);

@@ -31,6 +31,19 @@ note = "Dump 2026-10-20; file built_at 2026-08-10T20:28:56+00:00; 8,335,420 byte
 # Settings for pipeline/build_tafsir.py (docs/pack-format.md §4.6).
 quranpedia_book = 136
 footnotes = "drop"   # editor footnotes of the printed edition (M1c decision K2)
+min_coverage = 6231   # verses covered by the pinned dump; validate fails below this
+
+# Edition matter left out and the author's introduction moved to 1:1
+# (M1c decisions; evidence in README.md, counts in the coverage report).
+[[build.exclude]]
+verse = "114:6"
+part = "0"
+reason = "Editor's introduction, study, manuscripts and plates (volume 0)"
+[[build.move_to_start]]
+verse = "114:6"
+part = "1"
+pages = [5, 100]
+reason = "Author's introduction (مقدمة ابن كثير)"
 
 [pack]
 id = "ar.ibn-kathir"

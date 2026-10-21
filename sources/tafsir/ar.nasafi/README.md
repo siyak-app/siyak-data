@@ -34,6 +34,18 @@ Other Quranpedia ids considered:
 
 - None: no other Quranpedia tafsir dump carries this work.
 
+## Edition matter and the author's introduction
+
+Found in the M1c review (page-order check and index detection over the whole
+dump, then each run read); applied by the rules in `source.toml`:
+
+| Rule | Verse(s) | Volume | Pages | What it is |
+|---|---|---|---|---|
+| left out | 114:6 | 3 | 701–701 (from «تم بعون الله تعالى طبع») | Printer's closing line (تم بعون الله تعالى طبع كتاب تفسير النسفى) |
+| moved to 1:1 | 33:63 | 1 | 23–25 | Author's preface |
+
+After conversion: 6,135 passages covering 6,236 verses; details in `dist/reports/tafsir-coverage.md`. Source issues reported upstream: `docs/upstream/quranpedia.md`.
+
 ## Conversion
 
 - Footnotes: none in this edition. Not included (`footnotes = "drop"`, M1c decision K2);

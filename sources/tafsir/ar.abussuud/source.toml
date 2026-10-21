@@ -31,6 +31,7 @@ note = "Dump 2026-10-20; file built_at 2026-08-10T20:28:24+00:00; 3,482,345 byte
 # Settings for pipeline/build_tafsir.py (docs/pack-format.md §4.6).
 quranpedia_book = 37
 footnotes = "drop"   # editor footnotes of the printed edition (M1c decision K2)
+min_coverage = 6227   # verses covered by the pinned dump; validate fails below this
 
 [pack]
 id = "ar.abussuud"

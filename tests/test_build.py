@@ -30,6 +30,10 @@ def test_build_is_reproducible(fixtures_profile: Path) -> None:
     second = {p.name: sha(p) for p in run_build()}
     assert first == second
     assert set(first) == {
+        "ar.jalalayn.sqlite",
+        "ar.jalalayn.sqlite.zst",
+        "ar.razi.sqlite",
+        "ar.razi.sqlite.zst",
         "core.db",
         "en.pickthall.sqlite",
         "en.pickthall.sqlite.zst",
@@ -142,3 +146,27 @@ def test_tanzil_version_must_match_the_copyright_block(fixture_sources: None) ->
     files = tuple(replace(f, version="1.2") for f in tanzil.files)
     with pytest.raises(PipelineError, match=r"states version 1\.1, source\.toml pins 1\.2"):
         tanzil_version(inputs, replace(tanzil, files=files))
+
+
+@pytest.mark.parametrize(
+    ("sql", "message"),
+    [
+        ("UPDATE tafsir_paragraphs SET text = text || 'ز' WHERE tafsir_id = 1 AND idx = 0",
+         "text differs from the source"),
+        ("UPDATE tafsir_paragraphs SET text = '<i>' || text WHERE tafsir_id = 1 AND idx = 0",
+         "tags outside the subset"),
+        ("UPDATE tafsir SET verse_to = verse_to + 1 WHERE id = 1", "overlaps or is out of order"),
+        ("UPDATE tafsir_paragraphs SET page = NULL WHERE tafsir_id = 1 AND idx = 0", "part '"),
+        ("DELETE FROM tafsir_paragraphs WHERE tafsir_id = 2", "no paragraphs"),
+    ],
+)  # fmt: skip
+def test_tafsir_gates_name_the_problem(
+    built_fixtures: Path, fixture_sources: None, tmp_path: Path, sql: str, message: str
+) -> None:
+    dist = tmp_path / "tampered"
+    shutil.copytree(built_fixtures, dist)
+    with closing(sqlite3.connect(dist / "ar.jalalayn.sqlite")) as conn, conn:
+        conn.execute(sql)
+    compress_pack(dist / "ar.jalalayn.sqlite")
+    report = run_validate(dist, "fixtures")
+    assert any(message in f for f in report.failures), report.failures
