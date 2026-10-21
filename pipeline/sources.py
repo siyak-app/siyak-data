@@ -30,6 +30,8 @@ class SourceFile:
     note: str = ""
     #: Optional copy of the exact pinned bytes (a siyak-data release asset).
     mirror: str = ""
+    #: The upstream ``url`` is a page with a form; the file is saved by hand.
+    manual: bool = False
 
 
 @dataclass(frozen=True)
@@ -151,6 +153,7 @@ def load_source(path: Path) -> Source:
             sha256=str(f.get("sha256", "")).lower(),
             note=str(f.get("note", "")),
             mirror=str(f.get("mirror", "")),
+            manual=bool(f.get("manual", False)),
         )
         for f in data.get("files", [])
     )

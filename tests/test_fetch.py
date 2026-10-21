@@ -121,3 +121,37 @@ def test_fetch_fails_when_no_url_matches_the_pin(
     monkeypatch.setattr(fetch, "download", fake_download(responses))
     with pytest.raises(PipelineError, match="sha256 mismatch"):
         fetch_file(src, src.files[0], pin=False)
+
+
+def manual_source(sha: str, mirror: str = "") -> Source:
+    src = make_source(sha)
+    f = src.files[0]
+    manual = SourceFile(
+        f.name, "https://example.org/form", f.version, sha, mirror=mirror, manual=True
+    )
+    return Source(**{**src.__dict__, "files": (manual,)})
+
+
+def test_manual_file_is_never_downloaded_from_url(
+    root: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(fetch, "download", fake_download({}))  # any call would KeyError
+    src = manual_source(DIGEST)
+    with pytest.raises(PipelineError, match="must be downloaded by hand"):
+        fetch_file(src, src.files[0], pin=False)
+    with pytest.raises(PipelineError, match="must be downloaded by hand"):
+        fetch_file(manual_source(""), src.files[0], pin=True)
+
+
+def test_manual_file_in_cache_is_checked(root: Path) -> None:
+    put_cached(root, CONTENT)
+    src = manual_source(DIGEST)
+    assert fetch_file(src, src.files[0], pin=False).status == "cached"
+
+
+def test_manual_file_comes_from_mirror_once_pinned(
+    root: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(fetch, "download", fake_download({"m": CONTENT}))
+    src = manual_source(DIGEST, mirror="m")
+    assert fetch_file(src, src.files[0], pin=False).status == "downloaded"

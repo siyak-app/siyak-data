@@ -4,6 +4,9 @@ Rules (README "Sources"):
 - Pinned files are downloaded from their ``mirror`` (exact pinned bytes kept in a
   siyak-data release) when one is set, else, or if the mirror fails, from the
   upstream ``url``. Either way the bytes must match the pin.
+- ``manual = true`` marks a file whose upstream needs a form (e.g. an e-mail
+  address). It is never downloaded from ``url``: a maintainer saves it into
+  ``.cache/`` by hand, or ``fetch`` takes the exact pinned bytes from ``mirror``.
 - A file without a pinned sha256 is never accepted. ``fetch --pin`` downloads
   it and prints the computed hash; a maintainer reviews the file and writes
   the hash into ``source.toml`` by hand.
@@ -100,11 +103,19 @@ def fetch_file(source: Source, f: SourceFile, *, pin: bool) -> FetchResult:
             raise _mismatch(source, f, path, actual)
         status = "cached" if f.sha256 else "unpinned"
         return FetchResult(source.id, f.name, path, actual, status)
+    if f.manual and not (f.sha256 and f.mirror):
+        raise PipelineError(
+            f"{source.id}/{f.name} must be downloaded by hand (the source requires a form):\n"
+            f"  1. download it from {f.url}\n"
+            f"  2. save it unchanged as {path}\n"
+            "  3. run this command again (the sha256 check still applies)"
+        )
     if not f.sha256:
         download(f.url, path)
         return FetchResult(source.id, f.name, path, sha256_file(path), "unpinned")
     failures: list[str] = []
-    for url in [u for u in (f.mirror, f.url) if u]:
+    urls = [f.mirror] if f.manual else [f.mirror, f.url]
+    for url in [u for u in urls if u]:
         try:
             download(url, path)
         except PipelineError as exc:
