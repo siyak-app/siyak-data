@@ -2,13 +2,17 @@ import hashlib
 import shutil
 import sqlite3
 from contextlib import closing
+from dataclasses import replace
 from pathlib import Path
 
 import pytest
 
-from pipeline.build import run_build
+from pipeline.build import TANZIL, run_build
+from pipeline.build_core import load_tanzil, tanzil_version
 from pipeline.compress import compress_pack
+from pipeline.errors import PipelineError
 from pipeline.normalize import normalize
+from pipeline.sources import load_all
 from pipeline.validate import run_validate
 
 
@@ -58,6 +62,10 @@ def test_core_contents(built_fixtures: Path) -> None:
     ).fetchone() == ("Say: He is Allah, the One!",)
     notices = {r[0] for r in conn.execute("SELECT id FROM notices")}
     assert {"tanzil.text.uthmani", "tanzil.text.simple-clean", "en.pickthall"} <= notices
+    assert dict(conn.execute("SELECT key, value FROM content_meta")) == {
+        "core_version": "1",
+        "tanzil_version": "1.1",
+    }
 
 
 def tampered(built: Path, tmp_path: Path, sql: str) -> Path:
@@ -85,6 +93,16 @@ def tampered(built: Path, tmp_path: Path, sql: str) -> Path:
         ("UPDATE surahs SET name_tr = '' WHERE number = 5", "surah 5: empty name_tr"),
         ("DELETE FROM translations WHERE verse_id = 6222", "core.db translations en.pickthall"),
         ("DELETE FROM notices WHERE id = 'tanzil.text.uthmani'", "'tanzil.text.uthmani' missing"),
+        (
+            "DELETE FROM content_meta WHERE key = 'core_version'",
+            "content_meta 'core_version' is None, expected '1'",
+        ),
+        (
+            "UPDATE content_meta SET value = '1.0' WHERE key = 'tanzil_version'",
+            "content_meta 'tanzil_version' is '1.0', expected '1.1'",
+        ),
+        ("INSERT INTO content_meta VALUES ('x', 'y')", "content_meta has unknown keys ['x']"),
+        ("DROP TABLE content_meta", "core.db: table content_meta differs"),
     ],
 )
 def test_gates_name_the_problem(
@@ -115,3 +133,12 @@ def test_gate_catches_stale_compressed_pack(
         conn.execute("UPDATE translations SET text = 'x' WHERE verse_id = 6222")
     report = run_validate(dist, "fixtures")
     assert any("does not decompress to en.pickthall.sqlite" in f for f in report.failures)
+
+
+def test_tanzil_version_must_match_the_copyright_block(fixture_sources: None) -> None:
+    tanzil = next(s for s in load_all() if s.id == TANZIL)
+    inputs = load_tanzil(tanzil)
+    assert tanzil_version(inputs, tanzil) == "1.1"
+    files = tuple(replace(f, version="1.2") for f in tanzil.files)
+    with pytest.raises(PipelineError, match=r"states version 1\.1, source\.toml pins 1\.2"):
+        tanzil_version(inputs, replace(tanzil, files=files))

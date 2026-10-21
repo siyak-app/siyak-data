@@ -19,6 +19,7 @@ EXPECTED_TABLES = {
     "packs",
     "translations",
     "notices",
+    "content_meta",
     "tafsir",
     "tafsir_paragraphs",
     "words",

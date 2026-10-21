@@ -20,7 +20,7 @@ from collections.abc import Iterable
 from pathlib import Path
 
 from pipeline.build import TANZIL, morphology_sources, translation_sources
-from pipeline.build_core import METADATA
+from pipeline.build_core import CORE_VERSION, METADATA, UTHMANI
 from pipeline.build_translation import require_pack, source_version
 from pipeline.compress import SUFFIX, decompress_pack
 from pipeline.errors import PipelineError
@@ -79,7 +79,26 @@ def _check_verse_texts(
         )
 
 
-def check_core(core: Path, report: Report, *, profile: str, expected: dict[int, int]) -> None:
+def check_content_meta(conn: sqlite3.Connection, report: Report, *, tanzil_version: str) -> None:
+    """core.db states its core_version and the Tanzil text version (pack-format §3)."""
+    try:
+        meta = dict(conn.execute("SELECT key, value FROM content_meta").fetchall())
+    except sqlite3.Error as exc:
+        report.check(False, f"core.db: content_meta unreadable: {exc}")
+        return
+    expected = {"core_version": CORE_VERSION, "tanzil_version": tanzil_version}
+    for key, value in expected.items():
+        report.check(
+            meta.get(key) == value,
+            f"core.db: content_meta '{key}' is {meta.get(key)!r}, expected {value!r}",
+        )
+    extra = sorted(set(meta) - set(expected))
+    report.check(not extra, f"core.db: content_meta has unknown keys {extra}")
+
+
+def check_core(
+    core: Path, report: Report, *, profile: str, expected: dict[int, int], tanzil_version: str
+) -> None:
     """Gates for core.db. ``expected`` maps every surah that must have verses to its ayah count."""
     conn = sqlite3.connect(core)
     fresh = sqlite3.connect(":memory:")
@@ -92,6 +111,7 @@ def check_core(core: Path, report: Report, *, profile: str, expected: dict[int, 
         )
     version = conn.execute("PRAGMA user_version").fetchone()[0]
     report.check(version == SCHEMA_VERSION, f"core.db: user_version {version} != {SCHEMA_VERSION}")
+    check_content_meta(conn, report, tanzil_version=tanzil_version)
 
     surahs = conn.execute(
         "SELECT number, name_tr, ayah_count, bismillah FROM surahs ORDER BY number"
@@ -276,7 +296,13 @@ def run_validate(dist: Path, profile: str) -> Report:
         verse_ids = {r[0] for r in conn.execute("SELECT id FROM verses")}
     wanted = {s.number for s in metadata.surahs} if profile == "full" else present
     expected = {s.number: s.ayah_count for s in metadata.surahs if s.number in wanted}
-    check_core(core, report, profile=profile, expected=expected)
+    check_core(
+        core,
+        report,
+        profile=profile,
+        expected=expected,
+        tanzil_version=tanzil.file(UTHMANI).version,
+    )
 
     for source in translation_sources(sources):
         pack = require_pack(source)

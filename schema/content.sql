@@ -1,9 +1,9 @@
 -- content.db schema, version 1 (PRAGMA user_version = 1).
--- Tables copied exactly from the app specification (siyak/docs/spec/spec.md §5.1–§5.4).
--- Three changes, proposed as spec edits in the M1a report and marked "siyak-data addition":
---   * surahs.bismillah: the basmala Tanzil keeps apart from ayah 1 (sources/tanzil/README.md).
---   * notices: source notices that must ship with the data (e.g. the Tanzil terms).
---   * verses_fts holds normalize(text_clean), not text_clean itself (docs/normalization.md).
+-- Tables as in the app specification (siyak/docs/spec/spec.md §5.1–§5.4), including
+--   * surahs.bismillah: the basmala Tanzil keeps apart from ayah 1 (sources/tanzil/README.md);
+--   * notices: source notices that must ship with the data (e.g. the Tanzil terms);
+--   * verses_fts holding normalize(text_clean), not text_clean itself (docs/normalization.md);
+--   * content_meta: versions of the bundled core data (docs/pack-format.md §3).
 -- Vector tables (vec0) are created per pack at install time (M7) and are not part of this file.
 
 -- §5.1 core
@@ -15,8 +15,8 @@ CREATE TABLE surahs (
   name_en         TEXT NOT NULL,
   revelation_type TEXT NOT NULL CHECK (revelation_type IN ('meccan','medinan')),
   ayah_count      INTEGER NOT NULL,
-  bismillah       TEXT                         -- siyak-data addition (proposed §5.1 edit): Uthmani
-                                               -- basmala shown above the surah; NULL for 1 and 9
+  bismillah       TEXT                         -- Uthmani basmala shown above the surah;
+                                               -- NULL for 1 and 9
 );
 
 CREATE TABLE verses (
@@ -52,14 +52,21 @@ CREATE TABLE translations (
   PRIMARY KEY (pack_id, verse_id)
 ) WITHOUT ROWID;
 
--- siyak-data addition (proposed §5.1 edit): notices that must ship with the data,
--- shown in full on About → Sources. One row per notice.
+-- Notices that must ship with the data, shown in full on About → Sources.
+-- One row per notice.
 CREATE TABLE notices (
   id      TEXT PRIMARY KEY,                    -- e.g. 'tanzil.text'
   source  TEXT NOT NULL,                       -- source id, e.g. 'tanzil'
   title   TEXT NOT NULL,
   body    TEXT NOT NULL,                       -- verbatim notice text
   url     TEXT
+);
+
+-- Versions of the core data in this database (docs/pack-format.md §3):
+-- 'core_version' (bumped whenever core.db content changes) and 'tanzil_version'.
+CREATE TABLE content_meta (
+  key    TEXT PRIMARY KEY,
+  value  TEXT NOT NULL
 );
 
 -- §5.2 tafsir
@@ -119,9 +126,9 @@ CREATE INDEX seg_root  ON word_segments(root_id);
 CREATE INDEX seg_lemma ON word_segments(lemma_id);
 
 -- §5.4 search indexes
--- siyak-data change (proposed §5.4 edit): verses_fts stores normalize(text_clean)
--- with rowid = verses.id. text_clean itself stays Tanzil's verbatim text; the
--- index is never displayed. The query passes through the same normalize().
+-- verses_fts stores normalize(text_clean) with rowid = verses.id. text_clean itself
+-- stays Tanzil's verbatim text; the index is never displayed. The query passes
+-- through the same normalize().
 
 CREATE VIRTUAL TABLE verses_fts USING fts5(text_norm);
 CREATE VIRTUAL TABLE translations_fts USING fts5(

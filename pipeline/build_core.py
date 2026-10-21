@@ -2,13 +2,15 @@
 
 Contents: Tanzil Uthmani and Simple Clean text with metadata, Turkish surah
 names (data/surah-names-tr.csv), the bundled translation packs, the notices
-that must ship with the data, and filled search indexes. ``user_version`` is the
-schema version, so the app copies it to content.db and treats it as migrated.
+that must ship with the data, filled search indexes, and ``content_meta``
+(core_version, tanzil_version). ``user_version`` is the schema version, so the
+app copies it to content.db and treats it as migrated.
 """
 
 from __future__ import annotations
 
 import csv
+import re
 import sqlite3
 from dataclasses import dataclass
 from pathlib import Path
@@ -31,6 +33,11 @@ from pipeline.tanzil import Metadata, QuranText, parse_metadata, parse_quran_xml
 UTHMANI = "quran-uthmani.xml"
 SIMPLE_CLEAN = "quran-simple-clean.xml"
 METADATA = "quran-data.xml"
+#: content_meta 'core_version'. Bump on every change to core.db content
+#: (docs/pack-format.md §3); the app uses it to refresh its copy of the core data.
+CORE_VERSION = "1"
+#: The version line of Tanzil's copyright block, e.g. "(Uthmani, Version 1.1)".
+_TANZIL_VERSION = re.compile(r"Tanzil Quran Text \([^,)]+, Version ([0-9.]+)\)")
 
 
 @dataclass(frozen=True)
@@ -68,6 +75,22 @@ def _check_texts_agree(inputs: TanzilInputs) -> None:
             f"Uthmani and Simple Clean differ in verse structure at index {first}: "
             f"{u[first]} vs {c[first]}"
         )
+
+
+def tanzil_version(inputs: TanzilInputs, tanzil: Source) -> str:
+    """The Tanzil text version: pinned in source.toml and stated in both copyright blocks."""
+    pinned = {tanzil.file(UTHMANI).version, tanzil.file(SIMPLE_CLEAN).version}
+    if len(pinned) != 1:
+        raise PipelineError(f"{tanzil.path}: Uthmani and Simple Clean pin different versions")
+    version = pinned.pop()
+    for name, text in ((UTHMANI, inputs.uthmani), (SIMPLE_CLEAN, inputs.clean)):
+        match = _TANZIL_VERSION.search(text.notice)
+        stated = match.group(1) if match else None
+        if stated != version:
+            raise PipelineError(
+                f"{name}: copyright block states version {stated}, source.toml pins {version}"
+            )
+    return version
 
 
 def _notice_rows(inputs: TanzilInputs, tanzil: Source) -> list[tuple[str, str, str, str, str]]:
@@ -124,6 +147,10 @@ def build_core(
         [(row[0], normalize(row[5])) for row in verse_rows],
     )
     conn.executemany("INSERT INTO notices VALUES (?, ?, ?, ?, ?)", _notice_rows(inputs, tanzil))
+    conn.executemany(
+        "INSERT INTO content_meta (key, value) VALUES (?, ?)",
+        [("core_version", CORE_VERSION), ("tanzil_version", tanzil_version(inputs, tanzil))],
+    )
 
     for source in sorted(bundled, key=lambda s: require_pack(s).id):
         _insert_bundled_translation(conn, source, ids, built_at)

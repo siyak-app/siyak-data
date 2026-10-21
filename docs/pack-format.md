@@ -22,12 +22,12 @@ A release (tag `data-YYYY.MM.N`) contains:
 
 ## 2. The content schema
 
-`schema/content.sql` is the content.db schema (spec §5.1–§5.4) plus three
-additions proposed as spec edits:
+`schema/content.sql` is the content.db schema of spec §5.1–§5.4, including:
 
 - `surahs.bismillah`: the basmala Tanzil keeps apart from ayah 1 (NULL for surahs 1 and 9);
 - `notices`: notices that must ship with the data, shown on About → Sources;
-- `verses_fts` holds `normalize(text_clean)` (docs/normalization.md).
+- `verses_fts` holds `normalize(text_clean)` (docs/normalization.md);
+- `content_meta`: the versions of the core data (§3).
 
 Its version is `SCHEMA_VERSION = 1` (`pipeline/schema.py`): the
 `PRAGMA user_version` of core.db and the `schema_version` of every pack. The
@@ -46,9 +46,47 @@ A complete content.db, built from `schema/content.sql`:
 | `notices` | Tanzil text and metadata notices, and the notice of each bundled pack |
 | `verses_fts` | `rowid = verses.id`, `text_norm = normalize(text_clean)` |
 | `translations_fts` | one row per bundled translation row |
+| `content_meta` | `core_version` and `tanzil_version` (below) |
 
 `PRAGMA user_version` = `SCHEMA_VERSION`, so the app copies core.db to
 content.db on first launch and finds it fully migrated.
+
+### `content_meta`
+
+```sql
+CREATE TABLE content_meta (
+  key    TEXT PRIMARY KEY,
+  value  TEXT NOT NULL
+);
+```
+
+| Key | Value in core.db |
+|---|---|
+| `core_version` | `CORE_VERSION` in `pipeline/build_core.py`, currently `'1'`: a positive integer written as text, compared as an integer |
+| `tanzil_version` | the Tanzil text version, currently `'1.1'`: the version pinned for both text files in `sources/tanzil/source.toml`, which the build checks against the version line of each file's copyright block |
+
+core.db is copied to content.db once, on first launch. `core_version` lets the
+app tell that the core.db shipped with a newer app holds different core data
+than the user's content.db.
+
+**Bump rule.** `core_version` goes up by one, in the same PR, whenever a rebuild
+of core.db would change any row the app reads:
+
+- `verses` (a new Tanzil pin, i.e. a new `tanzil_version`), `surahs` (names,
+  basmala, metadata), `notices`;
+- the bundled translation packs (their rows, `packs` row or version);
+- `verses_fts` (any change to `normalize()`, which also changes the shared
+  test vectors);
+- the `content_meta` rows themselves.
+
+It does not go up for changes that leave every row the same, such as a new
+`built_at` (`packs.installed_at` of bundled packs follows the build time) or
+a rebuild that is only byte-different. A schema change raises `SCHEMA_VERSION`
+(§2) and, if it also changes rows, `core_version`. `core_version` never goes
+down and is never reused.
+
+`validate` fails unless core.db has exactly these two keys, with
+`core_version = CORE_VERSION` and `tanzil_version` equal to the pin.
 
 ### `notices`
 
@@ -216,6 +254,7 @@ then copies the new rows (in the order roots, lemmas, words, word_segments).
   a pack needs app features that older versions do not have.
 - **`schema_version`:** see §2. The app refuses packs with a `schema_version` it
   does not know.
+- **`core_version`:** the version of core.db's content, see §3 (bump rule).
 - **Reproducible builds:** `built_at` comes from `SOURCE_DATE_EPOCH` (the tag's
   commit time in releases), rows are inserted in sorted order, and every
   database is `VACUUM`ed. Rebuilding from the same inputs gives a byte-identical
