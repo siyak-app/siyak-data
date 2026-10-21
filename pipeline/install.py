@@ -28,7 +28,7 @@ from pipeline.schema import SCHEMA_VERSION, read_pack_info
 PACK_TABLES: dict[str, dict[str, tuple[str, ...]]] = {
     "translation": {"translations": ("pack_id", "verse_id", "text")},
     "tafsir": {
-        "tafsir": ("id", "pack_id", "verse_from", "verse_to"),
+        "tafsir": ("id", "pack_id", "verse_from", "verse_to", "kind"),
         "tafsir_paragraphs": ("tafsir_id", "idx", "text", "part", "page"),
     },
     "morphology": {
@@ -173,15 +173,18 @@ def install_archive_pack(
 def _copy_tafsir(conn: sqlite3.Connection, pack_id: str) -> None:
     """Copy a tafsir pack, giving its passages new ids in content.db.
 
-    ``tafsir.id`` is global in content.db, so the pack's ids cannot be kept. The
-    pack's passages never overlap, so ``verse_from`` identifies a passage within
-    the pack and maps old ids to new ones.
+    ``tafsir.id`` is global in content.db, so the pack's ids cannot be kept. A
+    pack's passages of one kind never overlap, so ``(verse_from, kind)``
+    identifies a passage within the pack and maps old ids to new ones.
     """
     duplicates = conn.execute(
-        "SELECT count(*) - count(DISTINCT verse_from) FROM pack.tafsir"
+        "SELECT count(*) FROM (SELECT 1 FROM pack.tafsir "
+        "GROUP BY verse_from, kind HAVING count(*) > 1)"
     ).fetchone()[0]
     if duplicates:
-        raise PipelineError(f"tafsir pack '{pack_id}' has passages with the same verse_from")
+        raise PipelineError(
+            f"tafsir pack '{pack_id}' has two passages with the same start and kind"
+        )
     conn.execute(
         "DELETE FROM tafsir_paragraphs WHERE tafsir_id IN "
         "(SELECT id FROM tafsir WHERE pack_id = ?)",
@@ -189,14 +192,14 @@ def _copy_tafsir(conn: sqlite3.Connection, pack_id: str) -> None:
     )
     conn.execute("DELETE FROM tafsir WHERE pack_id = ?", (pack_id,))
     conn.execute(
-        "INSERT INTO tafsir (pack_id, verse_from, verse_to) "
-        "SELECT ?, verse_from, verse_to FROM pack.tafsir ORDER BY verse_from",
+        "INSERT INTO tafsir (pack_id, verse_from, verse_to, kind) "
+        "SELECT ?, verse_from, verse_to, kind FROM pack.tafsir ORDER BY id",
         (pack_id,),
     )
     conn.execute(
         "INSERT INTO tafsir_paragraphs (tafsir_id, idx, text, part, page) "
         "SELECT t.id, p.idx, p.text, p.part, p.page FROM pack.tafsir_paragraphs p "
         "JOIN pack.tafsir pt ON pt.id = p.tafsir_id "
-        "JOIN main.tafsir t ON t.pack_id = ? AND t.verse_from = pt.verse_from",
+        "JOIN main.tafsir t ON t.pack_id = ? AND t.verse_from = pt.verse_from AND t.kind = pt.kind",
         (pack_id,),
     )

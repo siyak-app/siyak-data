@@ -1,10 +1,10 @@
--- content.db schema, version 1 (PRAGMA user_version = 1).
+-- content.db schema, version 2 (PRAGMA user_version = 2): the app's content migrations 0001 + 0002.
 -- Tables as in the app specification (siyak/docs/spec/spec.md §5.1–§5.4), including
 --   * surahs.bismillah: the basmala Tanzil keeps apart from ayah 1 (sources/tanzil/README.md);
 --   * notices: source notices that must ship with the data (e.g. the Tanzil terms);
 --   * verses_fts holding normalize(text_clean), not text_clean itself (docs/normalization.md);
 --   * content_meta: versions of the bundled core data (docs/pack-format.md §3);
---   * tafsir_paragraphs.part/page: where a paragraph starts in the printed edition.
+--   * tafsir.kind, and tafsir_paragraphs.part/page (a rowid table with UNIQUE (tafsir_id, idx)).
 -- Vector tables (vec0) are created per pack at install time (M7) and are not part of this file.
 
 -- §5.1 core
@@ -77,6 +77,8 @@ CREATE TABLE tafsir (
   pack_id     TEXT NOT NULL REFERENCES packs(id) ON DELETE CASCADE,
   verse_from  INTEGER NOT NULL REFERENCES verses(id),
   verse_to    INTEGER NOT NULL REFERENCES verses(id),
+  kind        TEXT NOT NULL DEFAULT 'commentary'
+                CHECK (kind IN ('commentary','introduction')),  -- introduction: the author's, at 1:1
   CHECK (verse_to >= verse_from)
 );
 CREATE INDEX tafsir_lookup ON tafsir(pack_id, verse_from, verse_to);
@@ -87,8 +89,8 @@ CREATE TABLE tafsir_paragraphs (
   text       TEXT NOT NULL,                    -- tafsir HTML subset (docs/pack-format.md §4.6)
   part       TEXT,                             -- volume of the printed edition, if known
   page       INTEGER,                          -- page in that volume where the paragraph starts
-  PRIMARY KEY (tafsir_id, idx)
-) WITHOUT ROWID;
+  UNIQUE (tafsir_id, idx)
+);                                             -- a rowid table: rows are large (pack-format §4.6)
 
 -- §5.3 morphology
 

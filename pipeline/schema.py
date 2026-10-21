@@ -19,7 +19,7 @@ from pipeline.paths import schema_file
 
 #: Version of schema/content.sql; written to ``PRAGMA user_version`` of core.db
 #: and to ``pack_info.schema_version`` of every pack.
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 
 PACK_INFO_DDL = """
 CREATE TABLE pack_info (
