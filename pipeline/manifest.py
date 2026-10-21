@@ -28,7 +28,11 @@ from pipeline.schema import build_timestamp, read_pack_info
 from pipeline.sources import Source
 
 #: File name of each pack type in a release (spec §6.1).
-PACK_FILE = {"translation": "{id}.sqlite.zst", "morphology": "{id}.tar.zst"}
+PACK_FILE = {
+    "translation": "{id}.sqlite.zst",
+    "tafsir": "{id}.sqlite.zst",
+    "morphology": "{id}.tar.zst",
+}
 DEV_TAG = "data-dev"
 
 

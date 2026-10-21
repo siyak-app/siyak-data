@@ -3,7 +3,8 @@
 --   * surahs.bismillah: the basmala Tanzil keeps apart from ayah 1 (sources/tanzil/README.md);
 --   * notices: source notices that must ship with the data (e.g. the Tanzil terms);
 --   * verses_fts holding normalize(text_clean), not text_clean itself (docs/normalization.md);
---   * content_meta: versions of the bundled core data (docs/pack-format.md §3).
+--   * content_meta: versions of the bundled core data (docs/pack-format.md §3);
+--   * tafsir_paragraphs.part/page: where a paragraph starts in the printed edition.
 -- Vector tables (vec0) are created per pack at install time (M7) and are not part of this file.
 
 -- §5.1 core
@@ -83,7 +84,9 @@ CREATE INDEX tafsir_lookup ON tafsir(pack_id, verse_from, verse_to);
 CREATE TABLE tafsir_paragraphs (
   tafsir_id  INTEGER NOT NULL REFERENCES tafsir(id) ON DELETE CASCADE,
   idx        INTEGER NOT NULL,                 -- starts at 0
-  text       TEXT NOT NULL,
+  text       TEXT NOT NULL,                    -- tafsir HTML subset (docs/pack-format.md §4.6)
+  part       TEXT,                             -- volume of the printed edition, if known
+  page       INTEGER,                          -- page in that volume where the paragraph starts
   PRIMARY KEY (tafsir_id, idx)
 ) WITHOUT ROWID;
 

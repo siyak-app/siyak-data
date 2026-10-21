@@ -27,6 +27,10 @@ from pipeline.schema import SCHEMA_VERSION, read_pack_info
 #: Tables (and their columns) a pack of each type may contain besides pack_info.
 PACK_TABLES: dict[str, dict[str, tuple[str, ...]]] = {
     "translation": {"translations": ("pack_id", "verse_id", "text")},
+    "tafsir": {
+        "tafsir": ("id", "pack_id", "verse_from", "verse_to"),
+        "tafsir_paragraphs": ("tafsir_id", "idx", "text", "part", "page"),
+    },
     "morphology": {
         "words": ("id", "verse_id", "position", "text_ar", "translit", "gloss_en"),
         "roots": ("id", "root"),
@@ -129,6 +133,9 @@ def _copy_rows(conn: sqlite3.Connection, pack_id: str, pack_type: str) -> None:
             (pack_id,),
         )
         return
+    if pack_type == "tafsir":
+        _copy_tafsir(conn, pack_id)
+        return
     if pack_type == "morphology":
         # v1 keeps one morphology pack at a time: the morphology tables have no
         # pack_id, so installing one replaces all morphology data (pack-format §4.4).
@@ -161,3 +168,35 @@ def install_archive_pack(
     files = extract_archive(archive, work_dir, expected=set(members), max_size=max_size)
     install_pack(conn, files[db_member], packs_row)
     return files
+
+
+def _copy_tafsir(conn: sqlite3.Connection, pack_id: str) -> None:
+    """Copy a tafsir pack, giving its passages new ids in content.db.
+
+    ``tafsir.id`` is global in content.db, so the pack's ids cannot be kept. The
+    pack's passages never overlap, so ``verse_from`` identifies a passage within
+    the pack and maps old ids to new ones.
+    """
+    duplicates = conn.execute(
+        "SELECT count(*) - count(DISTINCT verse_from) FROM pack.tafsir"
+    ).fetchone()[0]
+    if duplicates:
+        raise PipelineError(f"tafsir pack '{pack_id}' has passages with the same verse_from")
+    conn.execute(
+        "DELETE FROM tafsir_paragraphs WHERE tafsir_id IN "
+        "(SELECT id FROM tafsir WHERE pack_id = ?)",
+        (pack_id,),
+    )
+    conn.execute("DELETE FROM tafsir WHERE pack_id = ?", (pack_id,))
+    conn.execute(
+        "INSERT INTO tafsir (pack_id, verse_from, verse_to) "
+        "SELECT ?, verse_from, verse_to FROM pack.tafsir ORDER BY verse_from",
+        (pack_id,),
+    )
+    conn.execute(
+        "INSERT INTO tafsir_paragraphs (tafsir_id, idx, text, part, page) "
+        "SELECT t.id, p.idx, p.text, p.part, p.page FROM pack.tafsir_paragraphs p "
+        "JOIN pack.tafsir pt ON pt.id = p.tafsir_id "
+        "JOIN main.tafsir t ON t.pack_id = ? AND t.verse_from = pt.verse_from",
+        (pack_id,),
+    )
