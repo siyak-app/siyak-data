@@ -15,6 +15,8 @@ No tag is added, removed or corrected.
 from __future__ import annotations
 
 import json
+import sqlite3
+from contextlib import closing
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -226,6 +228,7 @@ def build_morphology_pack(
         pack.id, pack.type, pack.version, SCHEMA_VERSION, built_at, source_version(source)
     )
     db = write_database(out_dir / f"{pack.id}.sqlite", info, rows)
+    spotcheck_report(db, ids, out_dir / "reports")
     members = [
         (DB_MEMBER, db),
         (LICENSE_MEMBER, license_path),
@@ -233,3 +236,46 @@ def build_morphology_pack(
         (QAC_MEMBER, qac_path),
     ]
     return [db, build_archive(out_dir, pack.id, members, mtime)]
+
+
+#: Verses the maintainer compares with corpus.quran.com by hand (M1b acceptance).
+SPOTCHECK_VERSES = ((2, 153), (112, 1), (112, 2), (112, 3), (112, 4))
+CORPUS_WORD_URL = "https://corpus.quran.com/wordmorphology.jsp?location=({s}:{a}:{w})"
+
+
+def spotcheck_report(db: Path, ids: dict[tuple[int, int], int], reports_dir: Path) -> Path:
+    """Write a Markdown table of segments, roots and lemmas for SPOTCHECK_VERSES."""
+    lines = [
+        "# Morphology spot check",
+        "",
+        "Compare each word with the linked corpus.quran.com page.",
+    ]
+    with closing(sqlite3.connect(db)) as conn:
+        for surah, ayah in SPOTCHECK_VERSES:
+            verse_id = ids.get((surah, ayah))
+            rows = conn.execute(
+                "SELECT w.position, w.text_ar, s.idx, s.kind, s.text_ar, s.pos, l.lemma, r.root, "
+                "s.features FROM words w JOIN word_segments s ON s.word_id = w.id "
+                "LEFT JOIN lemmas l ON l.id = s.lemma_id LEFT JOIN roots r ON r.id = s.root_id "
+                "WHERE w.verse_id = ? ORDER BY w.position, s.idx",
+                (verse_id,),
+            ).fetchall()
+            if not rows:
+                continue
+            lines += [
+                "",
+                f"## {surah}:{ayah}",
+                "",
+                "| Word | Seg. | Kind | Segment | POS | Lemma | Root | Features |",
+                "|---|---|---|---|---|---|---|---|",
+            ]
+            for position, word, idx, kind, text, pos, lemma, root, features in rows:
+                link = CORPUS_WORD_URL.format(s=surah, a=ayah, w=position)
+                lines.append(
+                    f"| [{position}]({link}) {word} | {idx} | {kind} | {text} | {pos} | "
+                    f"{lemma or ''} | {root or ''} | {features or ''} |"
+                )
+    reports_dir.mkdir(parents=True, exist_ok=True)
+    out = reports_dir / "morphology-spotcheck.md"
+    out.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    return out

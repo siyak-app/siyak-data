@@ -1,0 +1,38 @@
+name: QAC tag error
+description: Report a possible error in a morphology tag (Quranic Arabic Corpus).
+title: "qac: <surah:ayah:word> <short description>"
+labels: ["area:morphology"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Siyak never changes Quranic Arabic Corpus data (its terms allow only verbatim copies).
+        Accepted reports are listed in [docs/qac-errata.md](../blob/main/docs/qac-errata.md),
+        shown as a note in the app, and forwarded to the QAC maintainers where possible.
+  - type: input
+    id: location
+    attributes:
+      label: Location
+      description: surah:ayah:word, optionally :segment (e.g. 2:153:4:2)
+    validations:
+      required: true
+  - type: input
+    id: tag
+    attributes:
+      label: Current tag
+      description: As shown in the Word panel or on corpus.quran.com
+    validations:
+      required: true
+  - type: textarea
+    id: issue
+    attributes:
+      label: What seems wrong, and what you would expect
+    validations:
+      required: true
+  - type: textarea
+    id: references
+    attributes:
+      label: References
+      description: Grammar works, i'rab sources, tafsir.
+    validations:
+      required: true
