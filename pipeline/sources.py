@@ -82,6 +82,8 @@ class Source:
     terms: Terms | None = None
     pack: PackMeta | None = None
     notes: str = ""
+    #: The ``[build]`` table: settings for the pack's builder (e.g. a tafsir's
+    #: Quranpedia book id); never written to the manifest.
     extra: dict[str, Any] = field(default_factory=dict)
 
     def cache_path(self, file_name: str) -> Path:
@@ -185,6 +187,7 @@ def load_source(path: Path) -> Source:
         terms=terms,
         pack=pack,
         notes=str(src.get("notes", "")),
+        extra=dict(data.get("build", {})),
     )
 
 

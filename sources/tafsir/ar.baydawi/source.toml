@@ -1,0 +1,71 @@
+# Anwār al-Tanzīl wa-Asrār al-Taʾwīl, by ʿAbd Allāh ibn ʿUmar al-Bayḍāwī (d. 685/1286 (approx.)).
+# Text from the Quranpedia.net data dumps (book 319). See README.md in this directory
+# and ../quranpedia/README.md for the dump format, terms and update policy.
+
+[source]
+id = "ar.baydawi"
+name = "Quranpedia.net: Anwār al-Tanzīl (al-Bayḍāwī)"
+homepage = "https://quranpedia.net"
+license = "Classical work (public domain); digitization: Quranpedia.net data license (version 2026-10-19)"
+attribution = "Source: Quranpedia.net (https://quranpedia.net), dump 2026-10-20"
+
+[source.terms]
+# Verbatim from https://quranpedia.net/dumps/LICENSE.md (version 2026-10-19), section "License".
+text = """
+- Free to use inside apps, websites, bots, and research tools — no attribution required (a visible link to https://quranpedia.net is appreciated).
+- Republishing this data — in full or in part — as a downloadable database or dataset requires: (1) crediting Quranpedia.net as the source with a link, and (2) stating this dump's version.
+- The content is continuously corrected. Keep any copy current via `https://quranpedia.net/api/v1/changes?since=<version>` — distributing outdated Quranic text is the distributor's responsibility.
+- Provided as-is, without warranty; verification remains the user's duty.
+"""
+url = "https://quranpedia.net/dumps/LICENSE.md"
+
+[[files]]
+name = "tafsir-book-319.json.gz"
+url = "https://quranpedia.net/dumps/tafsir-book-319.json.gz"
+mirror = "https://github.com/siyak/siyak-data/releases/download/sources-quranpedia-2026-10-20/tafsir-book-319.json.gz"
+version = "2026-10-20"
+sha256 = "635926be593a93d946b9900b033c6daf01ed5bd4f43f3f93896cbd669d15a477"
+note = "Dump 2026-10-20; file built_at 2026-08-10T20:31:58+00:00; 2,303,805 bytes."
+
+[build]
+# Settings for pipeline/build_tafsir.py (docs/pack-format.md §4.6).
+quranpedia_book = 319
+footnotes = "drop"   # editor footnotes of the printed edition (M1c decision K2)
+
+[pack]
+id = "ar.baydawi"
+type = "tafsir"
+lang = "ar"
+title = { tr = "Beyzâvî Tefsiri: Envâru't-Tenzîl", en = "Anwār al-Tanzīl (al-Bayḍāwī)" }
+description = { tr = "Keşşâf, Râzî ve Râgıb el-İsfahânî'den süzülen, Ehl-i sünnet çizgisinde yoğun bir dirâyet tefsiri; Osmanlı medreselerinin temel tefsir kitabı.", en = "A dense reason-based tafsir distilled from al-Kashshāf, al-Rāzī and al-Rāghib al-Iṣfahānī along Sunni lines; the standard tafsir of Ottoman madrasas." }
+author = "ʿAbd Allāh ibn ʿUmar al-Bayḍāwī"
+version = "1.0.0"
+min_app_version = "0.1.0"
+license = "Public domain (classical work); Quranpedia.net data license"
+attribution = "Source: Quranpedia.net · dump 2026-10-20 (https://quranpedia.net)"
+publish = true
+
+[pack.license_terms]
+tr = [
+  "Eser klasik bir metindir; kamu malıdır.",
+  "Dijital metin: Quranpedia.net (dump 2026-10-20). Kaynak ve bağlantısı gösterilmelidir.",
+  "Metin, künyede belirtilen basılı baskıya aittir; muhakkik dipnotları pakette yoktur.",
+  "Quranpedia metni sürekli düzeltir; güncellenen paketler yeni sürümle yayımlanır. Hata görürseniz bildirin.",
+]
+en = [
+  "The work is a classical text in the public domain.",
+  "Digitized text: Quranpedia.net (dump 2026-10-20). The source and its link must be shown.",
+  "The text is that of the printed edition named in the citation; editor footnotes are not included.",
+  "Quranpedia corrects its text continuously; updated packs are published with a new version. Please report errors.",
+]
+
+[pack.citation]
+type = "tafsir"
+author = "ʿAbd Allāh ibn ʿUmar al-Bayḍāwī"
+title = "Anwār al-Tanzīl wa-Asrār al-Taʾwīl"
+title_ar = "أنوار التنزيل وأسرار التأويل"
+editor = "محمد عبد الرحمن المرعشلي"
+publisher = "دار إحياء التراث العربي - بيروت"
+edition = "الأولى - 1418 ه"
+digitized_by = "Quranpedia.net"
+url = "https://quranpedia.net"

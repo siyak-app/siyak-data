@@ -1,0 +1,72 @@
+# Rūḥ al-Maʿānī fī Tafsīr al-Qurʾān al-ʿAẓīm wa-l-Sabʿ al-Mathānī, by Shihāb al-Dīn Maḥmūd al-Ālūsī (d. 1270/1854).
+# Text from the Quranpedia.net data dumps (book 301). See README.md in this directory
+# and ../quranpedia/README.md for the dump format, terms and update policy.
+
+[source]
+id = "ar.alusi"
+name = "Quranpedia.net: Rūḥ al-Maʿānī (al-Ālūsī)"
+homepage = "https://quranpedia.net"
+license = "Classical work (public domain); digitization: Quranpedia.net data license (version 2026-10-19)"
+attribution = "Source: Quranpedia.net (https://quranpedia.net), dump 2026-10-20"
+
+[source.terms]
+# Verbatim from https://quranpedia.net/dumps/LICENSE.md (version 2026-10-19), section "License".
+text = """
+- Free to use inside apps, websites, bots, and research tools — no attribution required (a visible link to https://quranpedia.net is appreciated).
+- Republishing this data — in full or in part — as a downloadable database or dataset requires: (1) crediting Quranpedia.net as the source with a link, and (2) stating this dump's version.
+- The content is continuously corrected. Keep any copy current via `https://quranpedia.net/api/v1/changes?since=<version>` — distributing outdated Quranic text is the distributor's responsibility.
+- Provided as-is, without warranty; verification remains the user's duty.
+"""
+url = "https://quranpedia.net/dumps/LICENSE.md"
+
+[[files]]
+name = "tafsir-book-301.json.gz"
+url = "https://quranpedia.net/dumps/tafsir-book-301.json.gz"
+mirror = "https://github.com/siyak/siyak-data/releases/download/sources-quranpedia-2026-10-20/tafsir-book-301.json.gz"
+version = "2026-10-20"
+sha256 = "59cb6cb42969e8c0f7eef349530fba2b9b0c10a25e7009da8a3c226b5677e66b"
+note = "Dump 2026-10-20; file built_at 2026-08-10T20:33:59+00:00; 187,405,743 bytes."
+
+[build]
+# Settings for pipeline/build_tafsir.py (docs/pack-format.md §4.6).
+quranpedia_book = 301
+footnotes = "drop"   # editor footnotes of the printed edition (M1c decision K2)
+
+[pack]
+id = "ar.alusi"
+type = "tafsir"
+lang = "ar"
+title = { tr = "Âlûsî Tefsiri: Rûhu'l-Meânî", en = "Rūḥ al-Maʿānī (al-Ālūsī)" }
+description = { tr = "Klasik geleneğin son büyük sentezi: dil, kelâm, fıkıh ve işârî yorumu bir arada sunar; çok hacimlidir.", en = "The last great synthesis of the classical tradition, combining language, theology, law and mystical readings; very large." }
+author = "Shihāb al-Dīn Maḥmūd al-Ālūsī"
+version = "1.0.0"
+min_app_version = "0.1.0"
+license = "Public domain (classical work); Quranpedia.net data license"
+attribution = "Source: Quranpedia.net · dump 2026-10-20 (https://quranpedia.net)"
+publish = true
+
+[pack.license_terms]
+tr = [
+  "Eser klasik bir metindir; kamu malıdır.",
+  "Dijital metin: Quranpedia.net (dump 2026-10-20). Kaynak ve bağlantısı gösterilmelidir.",
+  "Metin, künyede belirtilen basılı baskıya aittir; muhakkik dipnotları pakette yoktur.",
+  "Quranpedia metni sürekli düzeltir; güncellenen paketler yeni sürümle yayımlanır. Hata görürseniz bildirin.",
+]
+en = [
+  "The work is a classical text in the public domain.",
+  "Digitized text: Quranpedia.net (dump 2026-10-20). The source and its link must be shown.",
+  "The text is that of the printed edition named in the citation; editor footnotes are not included.",
+  "Quranpedia corrects its text continuously; updated packs are published with a new version. Please report errors.",
+]
+
+[pack.citation]
+type = "tafsir"
+author = "Shihāb al-Dīn Maḥmūd al-Ālūsī"
+title = "Rūḥ al-Maʿānī fī Tafsīr al-Qurʾān al-ʿAẓīm wa-l-Sabʿ al-Mathānī"
+title_ar = "روح المعاني"
+editor = "علي عبد البارى عطية"
+publisher = "دار الكتب العلمية - بيروت"
+edition = "الأولى"
+year = "1415"
+digitized_by = "Quranpedia.net"
+url = "https://quranpedia.net"
