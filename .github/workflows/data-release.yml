@@ -1,0 +1,66 @@
+name: data-release
+
+on:
+  push:
+    tags: ["data-*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Check tag format
+        run: |
+          if ! [[ "$GITHUB_REF_NAME" =~ ^data-[0-9]{4}\.[0-9]{2}\.[0-9]+$ ]]; then
+            echo "tag must look like data-YYYY.MM.N, got $GITHUB_REF_NAME"
+            exit 1
+          fi
+      - name: Reproducible build time (commit time of the tag)
+        run: echo "SOURCE_DATE_EPOCH=$(git log -1 --format=%ct)" >> "$GITHUB_ENV"
+      - uses: astral-sh/setup-uv@v10
+        with:
+          enable-cache: true
+      - run: uv sync --locked
+      - run: uv run pytest
+      - run: uv run siyak-data fetch
+      - run: uv run siyak-data build
+      - run: uv run siyak-data validate
+      - run: uv run siyak-data manifest --tag "$GITHUB_REF_NAME"
+      - name: Checksums
+        working-directory: dist
+        run: sha256sum core.db ./*.sqlite manifest.json pricing.json > SHA256SUMS
+      - name: Create the GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          {
+            echo "Data release $GITHUB_REF_NAME."
+            echo
+            echo "Validation report:"
+            echo '```'
+            cat dist/validation-report.txt
+            echo '```'
+          } > notes.md
+          gh release create "$GITHUB_REF_NAME" \
+            --title "$GITHUB_REF_NAME" \
+            --notes-file notes.md \
+            dist/core.db dist/*.sqlite dist/manifest.json dist/pricing.json \
+            dist/SHA256SUMS dist/validation-report.txt
+
+      # Ask the app repository to copy manifest.json and pricing.json to the
+      # website (spec §6.3). Disabled until the token exists.
+      # TODO: create a fine-grained personal access token with
+      #   "Contents: read and write" on siyak/siyak only (repository_dispatch
+      #   requires it), store it as the secret SIYAK_APP_DISPATCH_TOKEN in this
+      #   repository, then set the repository variable DISPATCH_TO_APP=true.
+      - name: Notify the app repository
+        if: vars.DISPATCH_TO_APP == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.SIYAK_APP_DISPATCH_TOKEN }}
+        run: |
+          gh api repos/siyak/siyak/dispatches \
+            -f event_type=data-release \
+            -F "client_payload[tag]=$GITHUB_REF_NAME"

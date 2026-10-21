@@ -1,0 +1,53 @@
+name: New source proposal
+description: Propose a translation, tafsir or other data source. The license fields are required.
+title: "source: <name>"
+labels: ["area:data", "needs-license-check"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you! Please read [docs/adding-a-source.md](../blob/main/docs/adding-a-source.md) first.
+        Answer every license question with a link or a quotation. "I think so" is not enough.
+  - type: input
+    id: work
+    attributes:
+      label: Work
+      description: Title, author/translator (with death date), language.
+    validations:
+      required: true
+  - type: input
+    id: edition
+    attributes:
+      label: Edition
+      description: Publisher, year, editor (muhaqqiq), print edition.
+    validations:
+      required: true
+  - type: input
+    id: download
+    attributes:
+      label: Download URL of the digital text
+    validations:
+      required: true
+  - type: textarea
+    id: rights
+    attributes:
+      label: Who holds rights to the text and to the digitization?
+    validations:
+      required: true
+  - type: textarea
+    id: redistribution
+    attributes:
+      label: Is redistribution in an app allowed? Is modification (format conversion) allowed?
+      description: Quote the license or terms and link to them.
+    validations:
+      required: true
+  - type: textarea
+    id: attribution
+    attributes:
+      label: Required attribution wording, and commercial-use terms
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: Anything else (quality, completeness, known errors)

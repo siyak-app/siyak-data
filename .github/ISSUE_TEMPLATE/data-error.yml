@@ -1,0 +1,37 @@
+name: Data error report
+description: Report a wrong or missing text, verse, name or other data in a pack.
+title: "data: <pack> <surah:ayah>"
+labels: ["area:data"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Siyak never edits source texts. Errors that come from the source are reported to the
+        source (e.g. Tanzil); errors in our conversion are fixed here.
+  - type: input
+    id: pack
+    attributes:
+      label: Pack
+      description: e.g. core.db (Quran text), en.pickthall
+    validations:
+      required: true
+  - type: input
+    id: location
+    attributes:
+      label: Location
+      description: surah:ayah, or surah number for names.
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: What the app shows
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What it should be, and your reference
+      description: Edition and page, or a link.
+    validations:
+      required: true

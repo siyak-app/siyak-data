@@ -1,0 +1,13 @@
+* text=auto eol=lf
+
+# Upstream files copied verbatim: git must not convert line endings,
+# otherwise their sha256 would no longer match the pinned source.
+tests/fixtures/** -text
+sources/**/NOTICE -text
+
+# Binary
+*.db binary
+*.sqlite binary
+*.zst binary
+
+uv.lock linguist-generated=true

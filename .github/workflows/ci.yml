@@ -1,0 +1,81 @@
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      app_ref:
+        description: "Ref of siyak/siyak whose content migrations the schema-compat job uses"
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10
+        with:
+          enable-cache: true
+      - run: uv sync --locked
+      - run: uv run ruff check .
+      - run: uv run ruff format --check .
+      - run: uv run mypy
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10
+        with:
+          enable-cache: true
+      - run: uv sync --locked
+      - run: uv run pytest
+      # Build on the committed fixtures: no network access needed.
+      - run: uv run siyak-data build --profile fixtures
+      - run: uv run siyak-data validate --profile fixtures
+      - run: uv run siyak-data manifest --profile fixtures --tag data-ci
+
+  schema-compat:
+    # Installs every pack into a database created from the app's own content
+    # migrations. Skipped (not failed) while the app repository or its
+    # migrations are not available.
+    runs-on: ubuntu-latest
+    env:
+      SIYAK_APP_REF: ${{ inputs.app_ref || vars.SIYAK_APP_REF || 'main' }}
+    steps:
+      - uses: actions/checkout@v7
+      - name: Check out the app's content migrations
+        id: app
+        continue-on-error: true
+        uses: actions/checkout@v7
+        with:
+          repository: siyak/siyak
+          ref: ${{ env.SIYAK_APP_REF }}
+          path: app
+          sparse-checkout: src-tauri/migrations/content
+      - name: Look for migrations
+        id: migrations
+        run: |
+          dir=app/src-tauri/migrations/content
+          if [ "${{ steps.app.outcome }}" = "success" ] && compgen -G "$dir/*.sql" > /dev/null; then
+            echo "available=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skipped: app migrations not available (siyak/siyak@$SIYAK_APP_REF, $dir/)"
+            echo "available=false" >> "$GITHUB_OUTPUT"
+          fi
+      - if: steps.migrations.outputs.available == 'true'
+        uses: astral-sh/setup-uv@v10
+        with:
+          enable-cache: true
+      - if: steps.migrations.outputs.available == 'true'
+        run: uv sync --locked
+      - if: steps.migrations.outputs.available == 'true'
+        run: uv run pytest tests/test_schema_compat.py
+        env:
+          SIYAK_CONTENT_MIGRATIONS: ${{ github.workspace }}/app/src-tauri/migrations/content
