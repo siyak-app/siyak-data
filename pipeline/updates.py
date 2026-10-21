@@ -8,15 +8,22 @@ file, whether it is unchanged or which lines differ. Nothing is written to
 
 Tanzil's copyright line contains the current year, so a yearly change of that
 single line is expected and reported as such.
-(Quranpedia tafsir dumps are added to this command in M1c.)
+
+Quranpedia tafsir dumps (sources with ``[build] quranpedia_book``) are large
+and rebuilt in place, so they are not downloaded: the command compares the
+pin with the sha256 in the dump manifest and asks the changes API
+(``/api/v1/changes?since=<pinned dump version>``) for corrections to the book.
 """
 
 from __future__ import annotations
 
 import difflib
+import functools
+import json
 import tempfile
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
 from pipeline.errors import PipelineError
 from pipeline.fetch import download, sha256_file
@@ -48,8 +55,59 @@ def _changed_lines(old: Path, new: Path) -> list[str]:
     ]
 
 
+QURANPEDIA_MANIFEST = "https://quranpedia.net/dumps/manifest.json"
+QURANPEDIA_CHANGES = "https://quranpedia.net/api/v1/changes?since={since}"
+
+
+@functools.cache
+def _json(url: str) -> dict[str, Any]:
+    with tempfile.TemporaryDirectory(prefix="siyak-updates-") as tmp:
+        path = Path(tmp) / "data.json"
+        download(url, path)
+        data = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(data, dict):
+        raise PipelineError(f"{url}: expected a JSON object")
+    return data
+
+
+def check_quranpedia(source: Source) -> list[UpdateReport]:
+    """Compare a pinned dump with the dump manifest and the changes API."""
+    book = int(source.extra["quranpedia_book"])
+    reports = []
+    for f in source.files:
+        detail: list[str] = []
+        try:
+            files = _json(QURANPEDIA_MANIFEST).get("files", [])
+            listed = {e["name"]: e for e in files if isinstance(e, dict)}
+            entry = listed.get(f.name)
+            if entry is None:
+                detail.append("not in the dump manifest any more")
+            elif entry.get("sha256") != f.sha256:
+                detail.append(f"dump manifest has a new file (built {entry.get('built_at')})")
+            changes = _json(QURANPEDIA_CHANGES.format(since=f.version)).get("changes", {})
+            for kind in ("ayah_book_contents", "books"):
+                table = changes.get(kind, {})
+                rows = [r for r in table.get("rows", []) if int(r.get("book", -1)) == book]
+                if rows:
+                    where = ", ".join(f"{r.get('surah', '')}:{r.get('ayah', '')}" for r in rows[:5])
+                    detail.append(
+                        f"changes API: {len(rows)} {kind} change(s) since {f.version} {where}"
+                    )
+                if table.get("truncated"):
+                    detail.append(f"changes API: the {kind} list is truncated; query a later date")
+        except (PipelineError, KeyError, ValueError, AttributeError) as exc:
+            reports.append(UpdateReport(source.id, f.name, "error", [str(exc)]))
+            continue
+        reports.append(
+            UpdateReport(source.id, f.name, "changed" if detail else "unchanged", detail)
+        )
+    return reports
+
+
 def check_source(source: Source) -> list[UpdateReport]:
     """Compare every pinned file of ``source`` with its upstream URL."""
+    if "quranpedia_book" in source.extra:
+        return check_quranpedia(source)
     reports: list[UpdateReport] = []
     with tempfile.TemporaryDirectory(prefix="siyak-updates-") as tmp:
         for f in source.files:

@@ -26,6 +26,10 @@ jobs:
       - run: uv sync --locked
       - run: uv run pytest
       - run: uv run siyak-data fetch
+      # Spec §6.6: ask Quranpedia's changes API (and the other upstreams) on every
+      # release; the result goes into the release notes. Re-pinning stays manual.
+      - name: Upstream changes since the pins
+        run: uv run siyak-data check-updates | tee dist-check-updates.txt
       - run: uv run siyak-data build
       - run: uv run siyak-data validate
       - run: uv run siyak-data manifest --tag "$GITHUB_REF_NAME"
@@ -39,6 +43,11 @@ jobs:
           {
             echo "Data release $GITHUB_REF_NAME."
             echo
+            echo "Upstream changes since the pins (check-updates):"
+            echo '```'
+            cat dist-check-updates.txt
+            echo '```'
+            echo
             echo "Validation report:"
             echo '```'
             cat dist/validation-report.txt
@@ -48,7 +57,8 @@ jobs:
             --title "$GITHUB_REF_NAME" \
             --notes-file notes.md \
             dist/core.db dist/*.sqlite.zst dist/*.tar.zst dist/manifest.json dist/pricing.json \
-            dist/SHA256SUMS dist/validation-report.txt dist/reports/qac-alignment.md
+            dist/SHA256SUMS dist/validation-report.txt dist/reports/qac-alignment.md \
+            dist/reports/tafsir-coverage.md dist/reports/tafsir-sizes.md
 
       # Ask the app repository to copy manifest.json and pricing.json to the
       # website (spec §6.3). Disabled until the token exists.
