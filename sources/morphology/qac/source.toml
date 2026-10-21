@@ -1,0 +1,107 @@
+# Quranic Arabic Corpus, morphology version 0.4 (2011). See README.md in this directory.
+
+[source]
+id = "morphology.qac"
+name = "Quranic Arabic Corpus"
+homepage = "https://corpus.quran.com"
+license = "GNU General Public License (version not stated; GPL-3.0 text included), with QAC terms of use: verbatim copies only"
+attribution = "Source: Quranic Arabic Corpus (https://corpus.quran.com)"
+notes = """
+The download page asks for an e-mail address and states: "By downloading this
+data, you agree to the terms and conditions of the GNU License." The zip was
+downloaded by hand by the project maintainer on 2026-10-21. The text file
+inside is byte-identical to the independent copy bundled with QuranTree.jl
+(github.com/alstat/QuranTree.jl, data/quranic-corpus-morphology-0.4.txt).
+The file header also carries the notice of Tanzil Uthmani 1.0.2, the text QAC
+is based on; both notices ship verbatim in NOTICE.
+"""
+
+[source.terms]
+# Verbatim from the file header, and from https://corpus.quran.com/faq.jsp.
+text = """
+TERMS OF USE:
+
+- Permission is granted to copy and distribute verbatim copies
+  of this file, but CHANGING IT IS NOT ALLOWED.
+
+- This annotation can be used in any website or application,
+  provided its source (the Quranic Arabic Corpus) is clearly
+  indicated, and a link is made to http://corpus.quran.com to enable
+  users to keep track of changes.
+
+- This copyright notice shall be included in all verbatim copies
+  of the text, and shall be reproduced appropriately in all works
+  derived from or containing substantial portion of this file.
+
+FAQ: "available freely for non-commercial use under the GNU public license."
+FAQ (research use): "You do not use the data for commercial purposes." /
+"You give a citation in your research publication."
+"""
+url = "https://corpus.quran.com/download/"
+accepted_by = "Kemal Özyön"
+accepted_on = "2026-10-21"
+
+[[files]]
+name = "quranic-corpus-morphology-0.4.zip"
+url = "https://corpus.quran.com/download/"
+manual = true
+mirror = "https://github.com/siyak/siyak-data/releases/download/sources-qac-0.4/quranic-corpus-morphology-0.4.zip"
+version = "0.4"
+sha256 = "fda26f87cc58b42fc992a3ad666a562805b636f34bcecb46326d048337ca7999"
+note = "As downloaded; contains only quranic-corpus-morphology-0.4.txt (dated 2011-05-02)."
+
+[[files]]
+name = "quranic-corpus-morphology-0.4.txt"
+extract_from = "quranic-corpus-morphology-0.4.zip"
+version = "0.4"
+sha256 = "a1d12923815341face765083805d2148ed2d9f5cc3f7d6665219d887675d8c46"
+note = "The original file; ships byte-for-byte inside the pack (CRLF line endings)."
+
+[[files]]
+name = "COPYING"
+url = "https://www.gnu.org/licenses/gpl-3.0.txt"
+mirror = "https://github.com/siyak/siyak-data/releases/download/sources-qac-0.4/COPYING"
+version = "GPL-3.0"
+sha256 = "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986"
+note = "QAC names no GPL version; GPL-3.0 chosen as allowed by the GPL ('any version ever published')."
+
+[pack]
+id = "morphology.qac"
+type = "morphology"
+lang = "ar"
+title = { tr = "Kur'an Arapçası Külliyatı: kelime çözümlemesi", en = "Quranic Arabic Corpus: word morphology" }
+description = { tr = "Her kelimenin kökü, sözlük biçimi, kelime türü ve çekim bilgileri (önek/gövde/sonek).", en = "Root, dictionary form, part of speech and inflection of every word (prefix/stem/suffix)." }
+author = "Kais Dukes"
+version = "1.0.0"
+min_app_version = "0.1.0"
+license = "GNU General Public License (QAC terms of use)"
+attribution = "Source: Quranic Arabic Corpus (corpus.quran.com)"
+publish = true
+
+[pack.license_terms]
+tr = [
+  "Orijinal QAC dosyası pakette hiç değiştirilmeden yer alır; değiştirilmesi yasaktır.",
+  "Kaynak: Quranic Arabic Corpus (corpus.quran.com). Verinin kullanıldığı her yerde kaynak ve bağlantı gösterilmelidir.",
+  "GNU Genel Kamu Lisansı ile dağıtılır; telif bildirimi paketle birlikte gelir.",
+  "QAC verileri ticari olmayan kullanım içindir; araştırmada kullanıldığında kaynak gösterilmelidir.",
+  "Etiketler düzeltilmez; bilinen notlar ayrı bir listede tutulur.",
+]
+en = [
+  "The original QAC file is included unmodified; changing it is not allowed.",
+  "Source: Quranic Arabic Corpus (corpus.quran.com). The source and the link must be shown wherever the data is used.",
+  "Distributed under the GNU General Public License; the copyright notice ships with the pack.",
+  "QAC data is for non-commercial use; research use must cite the corpus.",
+  "Tags are never corrected; known notes are kept in a separate list.",
+]
+
+[pack.citation]
+type = "dataset"
+author = "Kais Dukes"
+title = "Quranic Arabic Corpus (morphology, version 0.4)"
+publisher = "University of Leeds"
+year = "2011"
+url = "https://corpus.quran.com"
+
+[pack.meta]
+qac_version = "0.4"
+base_text = "Tanzil Uthmani 1.0.2"

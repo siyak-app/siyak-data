@@ -20,9 +20,9 @@ from contextlib import closing
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from pipeline.align import AlignmentReport, align, group_words, render_report, tanzil_words
+from pipeline.align import AlignmentReport, align, group_words, render_report
 from pipeline.archive import build_archive
-from pipeline.buckwalter import root_to_arabic, to_arabic
+from pipeline.buckwalter import form_to_arabic, lemma_to_arabic, root_to_arabic
 from pipeline.build_translation import require_pack, source_version
 from pipeline.errors import PipelineError
 from pipeline.fetch import verify_cached
@@ -107,18 +107,16 @@ def derive_rows(
     conflicts: dict[str, set[str | None]] = {}
     word_id = 0
     for key in sorted(verses, key=lambda k: ids[k]):
-        surah, ayah = key
-        words = tanzil_words(verses[key], f"{surah}:{ayah}")
-        for word, segments in zip(words, grouped[key], strict=True):
+        for word in report.aligned[key]:
             word_id += 1
             rows.words.append((word_id, ids[key], word.position, word.text_ar))
-            for seg in segments:
+            for seg in word.segments:
                 parsed = interpret(seg)
                 root = root_to_arabic(parsed.root) if parsed.root else None
                 root_id = rows.roots.setdefault(root, len(rows.roots) + 1) if root else None
                 lemma_id = None
                 if parsed.lemma:
-                    lemma = to_arabic(parsed.lemma)
+                    lemma = lemma_to_arabic(parsed.lemma)
                     known = rows.lemmas.setdefault(lemma, (len(rows.lemmas) + 1, root_id))
                     if known[1] != root_id:
                         conflicts.setdefault(lemma, {_root_name(rows, known[1])}).add(root)
@@ -128,7 +126,7 @@ def derive_rows(
                         word_id,
                         seg.segment,
                         parsed.kind,
-                        to_arabic(seg.form),
+                        form_to_arabic(seg.form),
                         parsed.pos,
                         lemma_id,
                         root_id,
@@ -180,6 +178,10 @@ def alignment_report(report: AlignmentReport, reports_dir: Path) -> Path:
     md.write_text(render_report(report), encoding="utf-8")
     data = {
         "levels": dict(report.levels()),
+        "merged": [
+            {"location": f"{w.surah}:{w.ayah}:{w.position}", "tanzil": w.tanzil, "qac": w.qac}
+            for w in report.merged()
+        ],
         "count_mismatches": [
             {"surah": s, "ayah": a, "tanzil_words": t, "qac_words": q}
             for s, a, t, q in report.count_mismatches
@@ -214,7 +216,7 @@ def build_morphology_pack(
     license_path = verify_cached(source, LICENSE_FILE)
     notice_path = source.path.parent / "NOTICE"
     qac = parse_qac(qac_path)
-    if notice_path.read_text(encoding="utf-8").rstrip("\n") != qac.notice:
+    if notice_path.read_bytes() != qac.notice.encode("utf-8"):
         raise PipelineError(f"{notice_path} is not the verbatim header of {QAC_FILE}")
     rows, report = derive_rows(qac, verses, ids)
     md = alignment_report(report, out_dir / "reports")

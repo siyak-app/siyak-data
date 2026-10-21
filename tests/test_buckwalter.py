@@ -2,7 +2,14 @@ from pathlib import Path
 
 import pytest
 
-from pipeline.buckwalter import TABLE, root_to_arabic, to_arabic, to_buckwalter
+from pipeline.buckwalter import (
+    TABLE,
+    form_to_arabic,
+    lemma_to_arabic,
+    root_to_arabic,
+    to_arabic,
+    to_buckwalter,
+)
 from pipeline.errors import PipelineError
 from pipeline.qac import parse_qac
 
@@ -40,13 +47,27 @@ def test_unknown_character_is_an_error() -> None:
 
 
 @pytest.mark.full
-def test_every_character_of_the_qac_file_is_mapped() -> None:
+def test_every_value_of_the_qac_file_converts() -> None:
     if not QAC_FILE.exists():
         pytest.skip("QAC file not in .cache/")
-    used: set[str] = set()
+    outside_table: set[str] = set()
     for seg in parse_qac(QAC_FILE).segments:
-        used.update(seg.form)
+        form_to_arabic(seg.form)
+        outside_table.update(set(seg.form) - set(TABLE))
         for token in seg.features:
-            if token.startswith(("LEM:", "ROOT:")):
-                used.update(token.split(":", 1)[1])
-    assert used - set(TABLE) == set()
+            if token.startswith("LEM:"):
+                lemma_to_arabic(token[4:])
+                outside_table.update(set(token[4:]) - set(TABLE))
+            elif token.startswith("ROOT:"):
+                root_to_arabic(token[5:])
+    # The only characters outside QAC's table are the two documented exceptions:
+    # a space inside one form (37:130) and the homograph index of 15 lemmas.
+    assert outside_table == {" ", "2"}
+
+
+def test_form_with_space_and_homograph_lemma() -> None:
+    assert form_to_arabic("<ilo yaAsiyna") == "إِلْ يَاسِينَ"
+    assert lemma_to_arabic("EaAd2") == "عَاد2"
+    assert lemma_to_arabic("EaAd") == "عَاد"
+    with pytest.raises(PipelineError):
+        lemma_to_arabic("Ea2Ad")

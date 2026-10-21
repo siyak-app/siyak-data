@@ -12,6 +12,14 @@ def seg(tag: str, features: str) -> Segment:
     return Segment(9, 9, 9, 1, "x", tag, tuple(features.split("|")), 1)
 
 
+def test_notice_keeps_crlf(tmp_path: Path) -> None:
+    path = tmp_path / "q.txt"
+    path.write_bytes(f"# a\r\n#\r\n\r\n{COLUMNS}\r\n(1:1:1:1)\tbi\tP\tPREFIX|bi+\r\n".encode())
+    parsed = parse_qac(path)
+    assert parsed.notice == "# a\r\n#\r\n\r\n"
+    assert parsed.segments[0].features == ("PREFIX", "bi+")
+
+
 def test_parse_keeps_rows_verbatim(tmp_path: Path) -> None:
     path = tmp_path / "q.txt"
     path.write_text(
@@ -21,7 +29,7 @@ def test_parse_keeps_rows_verbatim(tmp_path: Path) -> None:
         encoding="utf-8",
     )
     parsed = parse_qac(path)
-    assert parsed.notice == "# notice line 1\n#  line 2"
+    assert parsed.notice == "# notice line 1\n#  line 2\n\n"
     assert [s.location for s in parsed.segments] == ["1:2:3:1", "1:2:3:2"]
     assert parsed.segments[1].form == "kataba"
     assert parsed.segments[1].features[-1] == "3MS"

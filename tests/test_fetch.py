@@ -1,4 +1,5 @@
 import hashlib
+import zipfile
 from collections.abc import Callable
 from pathlib import Path
 
@@ -155,3 +156,22 @@ def test_manual_file_comes_from_mirror_once_pinned(
     monkeypatch.setattr(fetch, "download", fake_download({"m": CONTENT}))
     src = manual_source(DIGEST, mirror="m")
     assert fetch_file(src, src.files[0], pin=False).status == "downloaded"
+
+
+def test_member_is_extracted_from_a_pinned_zip(root: Path) -> None:
+    zip_path = root / ".cache" / "demo" / "bundle.zip"
+    zip_path.parent.mkdir(parents=True)
+    with zipfile.ZipFile(zip_path, "w") as zf:
+        zf.writestr("a.txt", CONTENT)
+        zf.writestr("other.txt", b"not extracted")
+    zip_sha = hashlib.sha256(zip_path.read_bytes()).hexdigest()
+    src = make_source(DIGEST)
+    files = (
+        SourceFile("bundle.zip", "https://example.org/form", "1", zip_sha, manual=True),
+        SourceFile("a.txt", "", "1", DIGEST, extract_from="bundle.zip"),
+    )
+    src = Source(**{**src.__dict__, "files": files})
+    results = fetch.fetch_sources([src])
+    assert [r.status for r in results] == ["cached", "cached"]
+    assert verify_cached(src, "a.txt").read_bytes() == CONTENT
+    assert not (root / ".cache" / "demo" / "other.txt").exists()

@@ -32,6 +32,8 @@ class SourceFile:
     mirror: str = ""
     #: The upstream ``url`` is a page with a form; the file is saved by hand.
     manual: bool = False
+    #: Name of another file of this source (a zip) that this file is a member of.
+    extract_from: str = ""
 
 
 @dataclass(frozen=True)
@@ -148,12 +150,13 @@ def load_source(path: Path) -> Source:
     files = tuple(
         SourceFile(
             name=_str(f, "name", f"{where} [[files]]"),
-            url=_str(f, "url", f"{where} [[files]]"),
+            url=str(f.get("url", "")),
             version=_str(f, "version", f"{where} [[files]]"),
             sha256=str(f.get("sha256", "")).lower(),
             note=str(f.get("note", "")),
             mirror=str(f.get("mirror", "")),
             manual=bool(f.get("manual", False)),
+            extract_from=str(f.get("extract_from", "")),
         )
         for f in data.get("files", [])
     )

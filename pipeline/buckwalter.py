@@ -102,3 +102,19 @@ def to_buckwalter(text: str) -> str:
 def root_to_arabic(root: str) -> str:
     """Convert a QAC root (e.g. ``qwl``) to spaced Arabic letters (``ق و ل``)."""
     return " ".join(to_arabic(letter) for letter in root)
+
+
+def form_to_arabic(form: str) -> str:
+    """Convert a QAC segment form; a space (one QAC word spelled as two Tanzil
+    tokens, e.g. 37:130:3) is kept as is."""
+    return " ".join(to_arabic(part) for part in form.split(" "))
+
+
+def lemma_to_arabic(lemma: str) -> str:
+    """Convert a QAC lemma, keeping QAC's homograph index (``EaAd2`` stays distinct from ``EaAd``).
+
+    QAC distinguishes homograph lemmas with a trailing digit; without it, two
+    different lemmas would get the same Arabic spelling.
+    """
+    stem = lemma.rstrip("0123456789")
+    return to_arabic(stem) + lemma[len(stem) :]

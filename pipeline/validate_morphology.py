@@ -22,7 +22,7 @@ from pathlib import Path
 
 from pipeline.align import align, group_words
 from pipeline.archive import extract_archive
-from pipeline.buckwalter import to_arabic
+from pipeline.buckwalter import form_to_arabic
 from pipeline.build_morphology import (
     DB_MEMBER,
     LICENSE_FILE,
@@ -123,11 +123,11 @@ def _check_segments(conn: sqlite3.Connection, source: Source, report: Report) ->
     ):
         return
     for seg, (idx, text, pos) in zip(segments, rows, strict=True):
-        if (idx, text, pos) != (seg.segment, to_arabic(seg.form), seg.tag):
+        if (idx, text, pos) != (seg.segment, form_to_arabic(seg.form), seg.tag):
             report.check(
                 False,
                 f"QAC {seg.location}: derived row {(idx, text, pos)} does not match "
-                f"{(seg.segment, to_arabic(seg.form), seg.tag)}",
+                f"{(seg.segment, form_to_arabic(seg.form), seg.tag)}",
             )
             return
 

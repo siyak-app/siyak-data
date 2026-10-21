@@ -7,6 +7,9 @@ Rules (README "Sources"):
 - ``manual = true`` marks a file whose upstream needs a form (e.g. an e-mail
   address). It is never downloaded from ``url``: a maintainer saves it into
   ``.cache/`` by hand, or ``fetch`` takes the exact pinned bytes from ``mirror``.
+- ``extract_from`` names a zip of the same source; the file is that zip's
+  member of the same name, extracted after the zip itself is verified, and it
+  carries its own pin.
 - A file without a pinned sha256 is never accepted. ``fetch --pin`` downloads
   it and prints the computed hash; a maintainer reviews the file and writes
   the hash into ``source.toml`` by hand.
@@ -18,6 +21,7 @@ Rules (README "Sources"):
 from __future__ import annotations
 
 import hashlib
+import zipfile
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -92,6 +96,8 @@ def fetch_file(source: Source, f: SourceFile, *, pin: bool) -> FetchResult:
     status ``"unpinned"`` instead of failing.
     """
     path = source.cache_path(f.name)
+    if f.extract_from and not path.exists():
+        _extract_member(source, f, path)
     if not f.sha256 and not pin:
         raise PipelineError(
             f"{source.id}/{f.name} has no sha256 in {source.path}; "
@@ -128,6 +134,21 @@ def fetch_file(source: Source, f: SourceFile, *, pin: bool) -> FetchResult:
         path.replace(rejected)
         failures.append(str(_mismatch(source, f, rejected, actual)))
     raise PipelineError("\n".join(failures))
+
+
+def _extract_member(source: Source, f: SourceFile, path: Path) -> None:
+    """Copy the member ``f.name`` out of the (pinned, verified) zip ``f.extract_from``.
+
+    Only that one member is read; nothing else in the zip is written to disk.
+    """
+    archive = verify_cached(source, f.extract_from)
+    try:
+        with zipfile.ZipFile(archive) as zf:
+            data = zf.read(f.name)
+    except (zipfile.BadZipFile, KeyError) as exc:
+        raise PipelineError(f"{archive}: cannot read member {f.name!r}: {exc}") from exc
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(data)
 
 
 def fetch_sources(sources: list[Source], *, pin: bool = False) -> list[FetchResult]:

@@ -89,21 +89,23 @@ class Interpreted:
 
 
 def parse_qac(path: Path) -> QacFile:
-    """Parse the QAC morphology file; fail on any malformed line."""
-    header: list[str] = []
+    """Parse the QAC morphology file; fail on any malformed line.
+
+    ``notice`` is everything before the column header, byte for byte (the file
+    uses CRLF line endings, which are kept), so it can ship verbatim as NOTICE.
+    """
+    text = path.read_bytes().decode("utf-8")
+    lines = text.splitlines()
+    if COLUMNS not in lines:
+        raise PipelineError(f"{path}: no column header {COLUMNS!r}")
+    header_lines = lines.index(COLUMNS)
+    if any(line and not line.startswith("#") for line in lines[:header_lines]):
+        raise PipelineError(f"{path}: data before the column header {COLUMNS!r}")
+    notice = "".join(text.splitlines(keepends=True)[:header_lines])
     segments: list[Segment] = []
-    seen_columns = False
-    for number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
-        if line.startswith("#"):
-            header.append(line)
-            continue
+    for number, line in enumerate(lines[header_lines + 1 :], start=header_lines + 2):
         if not line.strip():
             continue
-        if line == COLUMNS:
-            seen_columns = True
-            continue
-        if not seen_columns:
-            raise PipelineError(f"{path}:{number}: data before the column header {COLUMNS!r}")
         parts = line.split("\t")
         location = _LOCATION.match(parts[0]) if len(parts) == 4 else None
         if location is None:
@@ -112,7 +114,7 @@ def parse_qac(path: Path) -> QacFile:
         segments.append(Segment(s, a, w, k, parts[1], parts[2], tuple(parts[3].split("|")), number))
     if not segments:
         raise PipelineError(f"{path}: no segment rows found")
-    return QacFile(notice="\n".join(header), segments=segments)
+    return QacFile(notice=notice, segments=segments)
 
 
 def _set(out: Interpreted, key: str, value: str, seg: Segment) -> None:
