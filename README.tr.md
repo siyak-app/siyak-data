@@ -7,9 +7,10 @@ veri hattı. Uygulamanın birlikte dağıttığı ve indirdiği içeriği üreti
 
 - **`core.db`**: kurulum dosyasıyla gelir: Tanzil Kur'an metni (Osmanî ve
   sade/harekesiz), sure bilgileri ve birlikte gelen mealler;
-- **paketler**: uygulamanın Paketler ekranından indirilen mealler (sonraki
-  aşamalarda tefsir ve morfoloji); zstd ile sıkıştırılmış olarak yayımlanır
-  (`<id>.sqlite.zst`);
+- **paketler**: uygulamanın Paketler ekranından indirilen mealler, 16 klasik
+  tefsir (Quranpedia.net dump'larından) ve Kur'an Arapçası Külliyatı kelime
+  çözümlemesi; zstd ile sıkıştırılmış olarak yayımlanır (`<id>.sqlite.zst`,
+  arşivler `<id>.tar.zst`);
 - **`manifest.json`** ve **`pricing.json`**: paketleri ve yapay zekâ model fiyatlarını tanımlar.
 
 Kod: `MIT OR Apache-2.0`. **Veriler kendi lisanslarını korur**:

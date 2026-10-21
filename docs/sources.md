@@ -12,8 +12,10 @@ terms), `README.md` (origin and edition), `LICENSE` and `NOTICE`.
 | [Quranic Arabic Corpus morphology](../sources/morphology/qac/) (Kais Dukes, University of Leeds) | 0.4 (2011) | GNU GPL (version not stated; GPL-3.0 text included) + QAC terms: verbatim copies only, no changes; non-commercial use (FAQ) | "Source: Quranic Arabic Corpus" with a link to https://corpus.quran.com | `morphology.qac` |
 | Turkish surah names ([`data/surah-names-tr.csv`](../data/surah-names-tr.csv)) | — | Project data, `MIT OR Apache-2.0` | — | `core.db` (`surahs.name_tr`) |
 
-Coming in M1c: classical tafsirs from Quranpedia.net dumps, al-Qurtubi from
-QUL (unpublished until permission).
+| [Quranpedia.net tafsir dumps](../sources/tafsir/quranpedia/) (16 classical tafsirs, one directory each: `sources/tafsir/ar.*`) | dump 2026-10-20 | Classical works: public domain. Digitization: Quranpedia.net Data License 2026-10-19: republishing as a dataset requires credit with link and the dump version; keep copies current via the changes API | "Source: Quranpedia.net · dump 2026-10-20 (https://quranpedia.net)" | `ar.tabari`, `ar.ibn-kathir`, `ar.razi`, `ar.zamakhshari`, `ar.baydawi`, `ar.jalalayn`, `ar.baghawi`, `ar.nasafi`, `ar.maturidi`, `ar.abussuud`, `ar.bursevi`, `ar.alusi`, `ar.suyuti-durr`, `ar.ibn-atiyya`, `ar.abu-hayyan`, `ar.shawkani` |
+
+Pending: al-Qurtubi from QUL (Tarteel), resource #23, built with `publish = false`
+until `sources/tafsir/ar.qurtubi/PERMISSION.md` records Tarteel's reply.
 
 ## Restrictive terms at a glance
 
@@ -21,4 +23,5 @@ QUL (unpublished until permission).
 |---|---|---|
 | `core.db` | Tanzil text may not be changed; notice must be shown | About → Sources (`notices` table) |
 | `en.pickthall` | Tanzil digitization: non-commercial use | Packs screen (`license_terms`), About → Sources |
+| `ar.*` tafsirs | Credit Quranpedia.net with link and dump version; text is the printed edition's; editor footnotes and edition matter left out; packs updated when Quranpedia corrects the text | Packs screen (`attribution`, `license_terms`), tafsir panel, About → Sources |
 | `morphology.qac` | Original file only verbatim; tags never corrected (errata: `docs/qac-errata.md`); source + link wherever shown; non-commercial | Packs screen (`license_terms`), word card, Word panel, concordance, exports, About → Sources (`qac/NOTICE` in full) |

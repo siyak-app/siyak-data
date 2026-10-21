@@ -8,9 +8,10 @@ downloads:
 
 - **`core.db`**: bundled with the installer: the Tanzil Quran text (Uthmani and
   Simple Clean), surah metadata, and the bundled translations;
-- **packs**: translations (and, in later stages, tafsir and morphology)
-  downloaded from the app's Packs screen, published zstd-compressed
-  (`<id>.sqlite.zst`);
+- **packs**: translations, 16 classical tafsirs (from the Quranpedia.net dumps)
+  and the Quranic Arabic Corpus morphology, downloaded from the app's Packs
+  screen and published zstd-compressed (`<id>.sqlite.zst`, archives as
+  `<id>.tar.zst`);
 - **`manifest.json`** and **`pricing.json`**: describe the packs and AI model prices.
 
 Code: `MIT OR Apache-2.0`. **Data keeps its own licenses**: see

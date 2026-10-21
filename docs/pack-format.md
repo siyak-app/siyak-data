@@ -134,7 +134,7 @@ The app reads `pack_info` before installing and refuses the file unless
 | Type | Tables (columns) |
 |---|---|
 | `translation` | `translations (pack_id, verse_id, text)`, primary key `(pack_id, verse_id)`, `WITHOUT ROWID` |
-| `tafsir` | `tafsir`, `tafsir_paragraphs` (spec §5.2): added in M1c |
+| `tafsir` | `tafsir (id, pack_id, verse_from, verse_to)`, `tafsir_paragraphs (tafsir_id, idx, text, part, page)` (spec §5.2), see §4.6 |
 | `morphology` | `words (id, verse_id, position, text_ar, translit, gloss_en)`, `roots (id, root)`, `lemmas (id, lemma, root_id)`, `word_segments (word_id, idx, kind, text_ar, pos, lemma_id, root_id, features)` (spec §5.3), inside an archive (§4.4) |
 
 A translation pack has exactly one row per verse (6,236) and no empty text.
@@ -242,6 +242,83 @@ then copies the new rows (in the order roots, lemmas, words, word_segments).
   hamza spellings (the search normalization does: N5).
 - Words merged by alignment rule M (`docs/qac-alignment.md`; four words) hold
   two Tanzil tokens with their space in `text_ar`.
+
+### 4.6 Tafsir packs
+
+Built from the Quranpedia.net dumps (`sources/tafsir/quranpedia/README.md`) by
+`pipeline/quranpedia.py` (passages) and `pipeline/tafsir_html.py` (text).
+
+**Tables.**
+
+- `tafsir`: one row per passage. `id` 1..N in verse order; `verse_from`..`verse_to`
+  is a range of verse ids within one surah. Passages never overlap, so within a pack
+  `verse_from` identifies a passage. A verse outside every passage has no commentary
+  in this pack.
+- `tafsir_paragraphs`: `idx` from 0. `part` and `page` are the volume and page
+  of the printed edition where the paragraph starts. Both are NULL when the source
+  gives no page (Quranpedia's page 0 or a missing page); `part` is never set without
+  `page`. The app may cite a paragraph as "*title*, part/page".
+
+**Installation.** `tafsir.id` is global in content.db, so the app does not copy
+the pack's ids. It inserts the passages, which get new ids, then the paragraphs,
+joined on `verse_from` (`_copy_tafsir` in `pipeline/install.py`). It refuses a pack
+in which two passages have the same `verse_from`.
+
+**Text: the tafsir HTML subset.** `text` is HTML that uses only:
+
+| Markup | Meaning | From the source |
+|---|---|---|
+| `<b>…</b>` | emphasis, headings | `strong`, `h3` and the headings written `h٣`/`h٥` |
+| `<span class="ayah">…</span>` | a Quran quotation (﴿…﴾) | `span.book-ayah` |
+| `<span class="ref">…</span>` | a verse reference, e.g. `[البقرة: ٢]` | `span.surah-ref` |
+| `<span class="poem">` … `</span>` | a poem: lines separated by `<br>`, each made of `<span class="hemistich">…</span>` | `table.poem` rows and cells |
+
+Paragraphs end at `br`, `p`, `div`, `hr`, `span.d-block`, headings and poems; a
+page break is not a paragraph break. Whitespace runs become one space. Text is
+HTML-escaped. Any other source tag fails the build. The app must still sanitize
+(the pack is untrusted input) and may style the classes as it likes.
+
+**What the conversion may change, and nothing else** (every letter is accounted
+for; see the coverage report):
+
+1. Markup, as above, and whitespace.
+2. Editor footnotes (`div.foot-notes`, `a.foot-note`, `span.foot-note`) are left out
+   when `[build] footnotes = "drop"` (all v1 packs: M1c decision K2). Footnote
+   numbers written as plain text in the running text, e.g. `(١)`, are text and stay.
+3. Edition matter listed in `[[build.exclude]]` (editor or publisher
+   introductions, studies, manuscript descriptions, indexes, printer colophons)
+   is left out. Each rule names the verse(s), volume and pages, optionally the
+   line it starts at (`from_text`), and a reason. A rule that matches nothing
+   fails the build.
+4. The author's own introduction, where the dump attaches it to another verse, is
+   moved to the start of 1:1 (`[[build.move_to_start]]`).
+5. Quranpedia's copy labels (`نص مكرر لاشتراكه مع الآية N:`, `جزء ذو علاقة من
+   تفسير الآية السابقة:`) and the copies that follow them: when the copy's letters
+   (compared after the search normalization, so a second digital edition with
+   different vocalization still matches) occur in the text stored for the verse
+   it points to, the label and copy are not stored again, and the two verses join
+   one passage. Unverified copies stay, label included.
+6. A piece without a page that repeats the paged text of the same verse, or of a
+   verse with no paged text in between, is not stored again (a second digital
+   edition), and joins that verse's passage.
+
+**Passages.** Verses that share a section form one passage, unless a verse with
+text of its own lies between them (an identical gloss of a refrain does not join
+verses). Steps 5 and 6 join verses as described. A verse without text joins the
+preceding passage of its surah only if that passage quotes the verse's first
+four words (M1c decision K4); other verses stay without commentary.
+
+**Gates** (`pipeline/validate_tafsir.py`): structure and `pack_info`; passage
+ranges valid, within one surah, sorted and not overlapping; paragraphs numbered
+from 0, not empty, subset markup only, `part`/`page` consistent; the letters of
+every passage equal those of the source sections it was built from (read with an
+independent tag stripper); coverage at least `[build] min_coverage`; the pack
+installs into content.db.
+
+**Reports** (`dist/reports/`): `tafsir-coverage.md` (per pack: passages,
+verses covered, gaps, gap merges, copies, edition matter, page artifacts, the
+share of verses quoted in their own passage, runs of unquoted verses, and the
+letter accounting) and `tafsir-sizes.md`.
 
 ## 5. Versions
 
