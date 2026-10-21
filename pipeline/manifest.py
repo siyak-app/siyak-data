@@ -108,6 +108,9 @@ def build_manifest(
         if not pack.publish:
             warnings.append(f"{pack.id}: publish = false, not in the manifest")
             continue
+        problem = source.permission_problem()
+        if problem:
+            raise PipelineError(problem)
         name = pack_file_name(source)
         path = dist / name
         if not path.exists():

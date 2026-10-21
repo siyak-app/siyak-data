@@ -90,6 +90,19 @@ class Source:
         """Where ``fetch`` stores the given file of this source."""
         return cache_dir() / self.id / file_name
 
+    def permission_problem(self) -> str | None:
+        """Why this source may not be published, if it needs written permission.
+
+        A source with ``[build] requires_permission = true`` (e.g. al-Qurtubi from
+        QUL, spec §6.6) can only be published once ``PERMISSION.md`` with the
+        reply is in its directory.
+        """
+        if not self.extra.get("requires_permission"):
+            return None
+        if (self.path.parent / "PERMISSION.md").exists():
+            return None
+        return f"{self.path}: publish = true needs PERMISSION.md (requires_permission)"
+
     def file(self, name: str) -> SourceFile:
         """Return the file entry called ``name``."""
         for f in self.files:

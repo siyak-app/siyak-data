@@ -380,6 +380,9 @@ files and each `source.toml` `[pack]` table. Shape (spec §6.3):
   (`SIYAK_DATA_TAG`).
 - **`publish = false`** packs are built and validated but never written to the
   manifest (e.g. `ar.qurtubi` until permission is granted).
+- A source with `[build] requires_permission = true` cannot be published until
+  its directory holds `PERMISSION.md` with the rights holder's reply: `manifest`
+  refuses it and `validate` fails (spec §6.6, al-Qurtubi).
 - **Bundles** come from `manifest.template.json`. Members that are not in the
   release are dropped (with a warning); an empty bundle is omitted. Vector and
   model packs are added to `recommended` in M7.

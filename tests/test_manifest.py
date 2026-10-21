@@ -75,3 +75,23 @@ def test_pricing_placeholder(tmp_path: Path) -> None:
         "currency": "USD",
         "models": {},
     }
+
+
+def test_publishing_without_required_permission_is_refused(
+    built_fixtures: Path, fixture_sources: None, tmp_path: Path
+) -> None:
+    sources = load_all()
+    gated = [
+        dataclasses.replace(
+            s, path=tmp_path / s.id / "source.toml", extra={**s.extra, "requires_permission": True}
+        )
+        if s.id == "ar.jalalayn"
+        else s
+        for s in sources
+    ]
+    with pytest.raises(PipelineError, match=r"needs PERMISSION\.md"):
+        build_manifest(gated, built_fixtures, tag="t")
+    (tmp_path / "ar.jalalayn").mkdir()
+    (tmp_path / "ar.jalalayn" / "PERMISSION.md").write_text("reply", encoding="utf-8")
+    manifest, _ = build_manifest(gated, built_fixtures, tag="t")
+    assert "ar.jalalayn" in {p["id"] for p in manifest["packs"]}

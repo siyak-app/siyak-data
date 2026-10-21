@@ -235,6 +235,8 @@ def check_sources(sources: list[Source], report: Report) -> None:
         if source.pack is not None and source.pack.publish:
             pack = source.pack
             report.check(bool(pack.license.strip()), f"{source.path}: publish=true needs license")
+            problem = source.permission_problem()
+            report.check(problem is None, str(problem))
             report.check(
                 source.terms is None or pack.license_terms is not None,
                 f"{source.path}: source has terms of use, so [pack.license_terms] is required",
