@@ -193,7 +193,17 @@ then copies the new rows (in the order roots, lemmas, words, word_segments).
   `text_ar` the QAC form in Arabic script; `pos` the QAC part-of-speech tag
   unchanged (e.g. `N`, `V`, `P`, `DET`, `PRON`); `features` see §7.
 - Ids of roots and lemmas follow their first occurrence in the QAC file.
-- Buckwalter → Arabic uses QAC's extended table (`pipeline/buckwalter.py`).
+- Buckwalter → Arabic uses QAC's extended table (`pipeline/buckwalter.py`),
+  with two documented exceptions: a space inside a form is kept (37:130:3,
+  إِلْ يَاسِينَ), and QAC's homograph index at the end of a lemma is kept as an
+  ASCII digit (`EaAd2` → `عَاد2`; 15 lemmas), because without it two different
+  lemmas would share one spelling. The app may render the digit as a
+  superscript or hide it, but must keep it for lookups.
+- Roots and lemmas are written with QAC's letters as they are; e.g. QAC writes
+  the root of ءَامَنَ as `Amn`, giving `ا م ن`. Root search in the app must accept
+  hamza spellings (the search normalization does: N5).
+- Words merged by alignment rule M (`docs/qac-alignment.md`; four words) hold
+  two Tanzil tokens with their space in `text_ar`.
 
 ## 5. Versions
 
