@@ -14,8 +14,7 @@ terms), `README.md` (origin and edition), `LICENSE` and `NOTICE`.
 
 | [Quranpedia.net tafsir dumps](../sources/tafsir/quranpedia/) (16 classical tafsirs, one directory each: `sources/tafsir/ar.*`) | dump 2026-10-20 | Classical works: public domain. Digitization: Quranpedia.net Data License 2026-10-19: republishing as a dataset requires credit with link and the dump version; keep copies current via the changes API | "Source: Quranpedia.net · dump 2026-10-20 (https://quranpedia.net)" | `ar.tabari`, `ar.ibn-kathir`, `ar.razi`, `ar.zamakhshari`, `ar.baydawi`, `ar.jalalayn`, `ar.baghawi`, `ar.nasafi`, `ar.maturidi`, `ar.abussuud`, `ar.bursevi`, `ar.alusi`, `ar.suyuti-durr`, `ar.ibn-atiyya`, `ar.abu-hayyan`, `ar.shawkani` |
 
-Pending: al-Qurtubi from QUL (Tarteel), resource #23, built with `publish = false`
-until `sources/tafsir/ar.qurtubi/PERMISSION.md` records Tarteel's reply.
+| [al-Qurṭubī, *al-Jāmiʿ li-Aḥkām al-Qurʾān*](../sources/tafsir/ar.qurtubi/) (Quranic Universal Library, Tarteel, resource #23) | file 2025-05-26 | Classical work: public domain. QUL digitization: no license or origin stated; permission requested | "Source: Quranic Universal Library (Tarteel)", with link | `ar.qurtubi`, **not published** until `PERMISSION.md` records Tarteel's reply |
 
 ## Restrictive terms at a glance
 

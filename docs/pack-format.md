@@ -29,10 +29,14 @@ A release (tag `data-YYYY.MM.N`) contains:
 - `verses_fts` holds `normalize(text_clean)` (docs/normalization.md);
 - `content_meta`: the versions of the core data (§3).
 
-Its version is `SCHEMA_VERSION = 1` (`pipeline/schema.py`): the
-`PRAGMA user_version` of core.db and the `schema_version` of every pack. The
-app's migrations must produce the same structure; the CI job `schema-compat`
-checks this against `siyak/src-tauri/migrations/content/`.
+Its version is `SCHEMA_VERSION = 2` (`pipeline/schema.py`): the
+`PRAGMA user_version` of core.db and the `schema_version` of every pack. It equals
+the number of the app's content migrations (`siyak/src-tauri/migrations/content/`:
+`0001_initial.sql`, and `0002` adding `surahs.bismillah`, `notices`,
+`content_meta`, the normalized `verses_fts`, `tafsir.kind` and the rowid
+`tafsir_paragraphs` with `part`/`page`). Each new app migration that changes the
+content schema raises it by one. The CI job `schema-compat` checks that the
+app's migrations produce exactly this structure.
 
 ## 3. `core.db`
 
@@ -134,7 +138,7 @@ The app reads `pack_info` before installing and refuses the file unless
 | Type | Tables (columns) |
 |---|---|
 | `translation` | `translations (pack_id, verse_id, text)`, primary key `(pack_id, verse_id)`, `WITHOUT ROWID` |
-| `tafsir` | `tafsir (id, pack_id, verse_from, verse_to)`, `tafsir_paragraphs (tafsir_id, idx, text, part, page)` (spec §5.2), see §4.6 |
+| `tafsir` | `tafsir (id, pack_id, verse_from, verse_to, kind)`, `tafsir_paragraphs (tafsir_id, idx, text, part, page)` (spec §5.2), see §4.6 |
 | `morphology` | `words (id, verse_id, position, text_ar, translit, gloss_en)`, `roots (id, root)`, `lemmas (id, lemma, root_id)`, `word_segments (word_id, idx, kind, text_ar, pos, lemma_id, root_id, features)` (spec §5.3), inside an archive (§4.4) |
 
 A translation pack has exactly one row per verse (6,236) and no empty text.
@@ -246,23 +250,34 @@ then copies the new rows (in the order roots, lemmas, words, word_segments).
 ### 4.6 Tafsir packs
 
 Built from the Quranpedia.net dumps (`sources/tafsir/quranpedia/README.md`) by
-`pipeline/quranpedia.py` (passages) and `pipeline/tafsir_html.py` (text).
+`pipeline/quranpedia.py` (passages) and `pipeline/tafsir_html.py` (text), or
+from a Quranic Universal Library tafsir database by `pipeline/qul.py` (al-Qurṭubī:
+each QUL verse group is one passage; `span.qpc-hafs` becomes `span.ayah`). Steps
+2–6 below concern the Quranpedia dumps only.
 
 **Tables.**
 
-- `tafsir`: one row per passage. `id` 1..N in verse order; `verse_from`..`verse_to`
-  is a range of verse ids within one surah. Passages never overlap, so within a pack
-  `verse_from` identifies a passage. A verse outside every passage has no commentary
-  in this pack.
-- `tafsir_paragraphs`: `idx` from 0. `part` and `page` are the volume and page
+- `tafsir`: one row per passage, `kind` `commentary` (the default) or
+  `introduction`.
+  - Commentary passages: `verse_from`..`verse_to` is a range of verse ids within
+    one surah; they never overlap. A verse outside every commentary passage has
+    no commentary in this pack.
+  - At most one `introduction` passage: the author's own introduction, anchored at
+    1:1 (`verse_from = verse_to = 1`), separate from the commentary on 1:1. The
+    app shows it apart (e.g. "Introduction" above al-Fātiḥa).
+  - `id` 1..N: the introduction first, then the commentary in verse order. Within
+    a pack `(verse_from, kind)` identifies a passage.
+- `tafsir_paragraphs`: `idx` from 0, unique per passage. A rowid table with
+  `UNIQUE (tafsir_id, idx)`, not `WITHOUT ROWID`: paragraphs are large rows, which
+  a `WITHOUT ROWID` table stores at about twice the size. `part` and `page` are the volume and page
   of the printed edition where the paragraph starts. Both are NULL when the source
   gives no page (Quranpedia's page 0 or a missing page); `part` is never set without
   `page`. The app may cite a paragraph as "*title*, part/page".
 
 **Installation.** `tafsir.id` is global in content.db, so the app does not copy
 the pack's ids. It inserts the passages, which get new ids, then the paragraphs,
-joined on `verse_from` (`_copy_tafsir` in `pipeline/install.py`). It refuses a pack
-in which two passages have the same `verse_from`.
+joined on `(verse_from, kind)` (`_copy_tafsir` in `pipeline/install.py`). It
+refuses a pack in which two passages have the same `verse_from` and `kind`.
 
 **Text: the tafsir HTML subset.** `text` is HTML that uses only:
 
@@ -290,8 +305,9 @@ for; see the coverage report):
    is left out. Each rule names the verse(s), volume and pages, optionally the
    line it starts at (`from_text`), and a reason. A rule that matches nothing
    fails the build.
-4. The author's own introduction, where the dump attaches it to another verse, is
-   moved to the start of 1:1 (`[[build.move_to_start]]`).
+4. The author's own introduction, where the dump attaches it to a verse, is taken
+   out of the commentary and stored as the `introduction` passage at 1:1
+   (`[[build.introduction]]`, same fields as an exclusion).
 5. Quranpedia's copy labels (`نص مكرر لاشتراكه مع الآية N:`, `جزء ذو علاقة من
    تفسير الآية السابقة:`) and the copies that follow them: when the copy's letters
    (compared after the search normalization, so a second digital edition with
@@ -300,16 +316,23 @@ for; see the coverage report):
    one passage. Unverified copies stay, label included.
 6. A piece without a page that repeats the paged text of the same verse, or of a
    verse with no paged text in between, is not stored again (a second digital
-   edition), and joins that verse's passage.
+   edition), and joins that verse's passage. `[build] dedupe_unpaged = false`
+   turns this off for a pack.
 
 **Passages.** Verses that share a section form one passage, unless a verse with
 text of its own lies between them (an identical gloss of a refrain does not join
-verses). Steps 5 and 6 join verses as described. A verse without text joins the
+verses). Steps 5 and 6 join verses as described. With `[build] passage_headings
+= true` (al-Shawkani) the edition's group headings `[سورة … (n) : الآيات a الى b]`
+and `[… : آية a]` are the passage boundaries: links across a boundary are cut,
+and each heading's verses form one passage (a copy already stored in another
+group is still not stored twice). The coverage report gives the number of
+headings and of passages that changed. A verse without text joins the
 preceding passage of its surah only if that passage quotes the verse's first
 four words (M1c decision K4); other verses stay without commentary.
 
 **Gates** (`pipeline/validate_tafsir.py`): structure and `pack_info`; passage
-ranges valid, within one surah, sorted and not overlapping; paragraphs numbered
+ranges valid, within one surah; commentary sorted and not overlapping; at most
+one introduction, passage 1 at 1:1; paragraphs numbered
 from 0, not empty, subset markup only, `part`/`page` consistent; the letters of
 every passage equal those of the source sections it was built from (read with an
 independent tag stripper); coverage at least `[build] min_coverage`; the pack
@@ -380,6 +403,9 @@ files and each `source.toml` `[pack]` table. Shape (spec §6.3):
   (`SIYAK_DATA_TAG`).
 - **`publish = false`** packs are built and validated but never written to the
   manifest (e.g. `ar.qurtubi` until permission is granted).
+- A source with `[build] optional = true` is skipped by `fetch`, `build` and
+  `validate` while its hand-downloaded file is not in `.cache/` or not pinned
+  (a file that may not be mirrored before permission is granted, so CI has no copy).
 - A source with `[build] requires_permission = true` cannot be published until
   its directory holds `PERMISSION.md` with the rights holder's reply: `manifest`
   refuses it and `validate` fails (spec §6.6, al-Qurtubi).
