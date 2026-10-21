@@ -18,7 +18,9 @@ SPEC_PACK_KEYS = {
 def test_manifest_shape(built_fixtures: Path, fixture_sources: None) -> None:
     manifest, warnings = build_manifest(load_all(), built_fixtures, tag="data-2026.10.0")
     assert set(manifest) == {"schema_version", "generated_at", "pricing_url", "packs", "bundles"}
-    (entry,) = manifest["packs"]
+    packs = {p["id"]: p for p in manifest["packs"]}
+    assert sorted(packs) == ["en.pickthall", "morphology.qac"]
+    entry = packs["en.pickthall"]
     assert set(entry) == SPEC_PACK_KEYS
     assert entry["url"].endswith("/download/data-2026.10.0/en.pickthall.sqlite.zst")
     assert entry["title"] == {
@@ -28,8 +30,14 @@ def test_manifest_shape(built_fixtures: Path, fixture_sources: None) -> None:
     assert entry["size"] == (built_fixtures / "en.pickthall.sqlite.zst").stat().st_size
     assert entry["installed_size"] == (built_fixtures / "en.pickthall.sqlite").stat().st_size
     assert entry["size"] < entry["installed_size"]
-    assert manifest["bundles"] == []  # morphology.qac and ar.jalalayn come in M1b/M1c
-    assert any("recommended" in w for w in warnings)
+    morphology = packs["morphology.qac"]
+    assert morphology["url"].endswith("/download/data-2026.10.0/morphology.qac.tar.zst")
+    assert morphology["size"] < morphology["installed_size"]
+    # ar.jalalayn comes in M1c; until then the bundle holds the morphology pack only.
+    assert [(b["id"], b["packs"]) for b in manifest["bundles"]] == [
+        ("recommended", ["morphology.qac"])
+    ]
+    assert any("ar.jalalayn" in w for w in warnings)
 
 
 def test_unpublished_pack_is_left_out(built_fixtures: Path, fixture_sources: None) -> None:

@@ -25,7 +25,13 @@ def test_build_is_reproducible(fixtures_profile: Path) -> None:
     first = {p.name: sha(p) for p in run_build()}
     second = {p.name: sha(p) for p in run_build()}
     assert first == second
-    assert set(first) == {"core.db", "en.pickthall.sqlite", "en.pickthall.sqlite.zst"}
+    assert set(first) == {
+        "core.db",
+        "en.pickthall.sqlite",
+        "en.pickthall.sqlite.zst",
+        "morphology.qac.sqlite",
+        "morphology.qac.tar.zst",
+    }
 
 
 def test_core_contents(built_fixtures: Path) -> None:

@@ -12,11 +12,11 @@ from pathlib import Path
 
 import pytest
 
-from pipeline.build import translation_sources
+from pipeline.build import morphology_sources, translation_sources
 from pipeline.build_translation import packs_row
-from pipeline.compress import decompress_pack
+from pipeline.compress import decompress_pack, frame_content_size
 from pipeline.errors import PipelineError
-from pipeline.install import install_pack
+from pipeline.install import install_archive_pack, install_pack
 from pipeline.schema import SCHEMA_VERSION, apply_content_schema, schema_shape
 from pipeline.sources import load_all
 from pipeline.validate import install_into_core_copy
@@ -105,3 +105,19 @@ def test_untrusted_pack_is_rejected(
         conn.execute(sql)
     with pytest.raises(PipelineError, match=message):
         install_into_core_copy(built_fixtures / "core.db", [(bad, source)])
+
+
+def test_morphology_pack_installs(
+    built_fixtures: Path, fixture_sources: None, tmp_path: Path
+) -> None:
+    # Install what users download: unpack the published .tar.zst archive first.
+    (source,) = morphology_sources(load_all())
+    assert source.pack is not None
+    archive = built_fixtures / f"{source.pack.id}.tar.zst"
+    conn = install_into_core_copy(built_fixtures / "core.db", [], migrations())
+    row = packs_row(source, installed_at="test", bundled=False)
+    files = install_archive_pack(conn, archive, row, tmp_path, frame_content_size(archive))
+    assert "qac/NOTICE" in files
+    segments = conn.execute("SELECT count(*) FROM word_segments").fetchone()[0]
+    assert segments > 0
+    assert conn.execute("PRAGMA foreign_key_check").fetchall() == []

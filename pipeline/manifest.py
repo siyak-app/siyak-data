@@ -17,16 +17,18 @@ from contextlib import closing
 from pathlib import Path
 from typing import Any
 
+from pipeline.archive import extract_archive
 from pipeline.build_translation import require_pack
-from pipeline.compress import MAX_PACK_SIZE, decompress_pack
+from pipeline.compress import MAX_PACK_SIZE, decompress_pack, frame_content_size
 from pipeline.errors import PipelineError
 from pipeline.fetch import sha256_file
+from pipeline.install import ARCHIVE_LAYOUT
 from pipeline.paths import repo_root
 from pipeline.schema import build_timestamp, read_pack_info
 from pipeline.sources import Source
 
 #: File name of each pack type in a release (spec §6.1).
-PACK_FILE = {"translation": "{id}.sqlite.zst"}
+PACK_FILE = {"translation": "{id}.sqlite.zst", "morphology": "{id}.tar.zst"}
 DEV_TAG = "data-dev"
 
 
@@ -43,9 +45,16 @@ def pack_entry(source: Source, path: Path, url: str) -> dict[str, Any]:
     """The manifest entry of one built pack."""
     pack = require_pack(source)
     with tempfile.TemporaryDirectory(prefix="siyak-manifest-") as tmp:
-        unpacked = decompress_pack(path, Path(tmp) / "pack.sqlite", MAX_PACK_SIZE)
-        installed_size = unpacked.stat().st_size
-        with closing(sqlite3.connect(unpacked)) as conn:
+        layout = ARCHIVE_LAYOUT.get(pack.type)
+        if layout is None:
+            database = decompress_pack(path, Path(tmp) / "pack.sqlite", MAX_PACK_SIZE)
+            installed_size = database.stat().st_size
+        else:
+            db_member, members = layout
+            files = extract_archive(path, Path(tmp), expected=set(members), max_size=MAX_PACK_SIZE)
+            database = files[db_member]
+            installed_size = frame_content_size(path)
+        with closing(sqlite3.connect(database)) as conn:
             info = read_pack_info(conn)
     if (info.id, info.version) != (pack.id, pack.version):
         raise PipelineError(

@@ -9,11 +9,12 @@ from __future__ import annotations
 from pathlib import Path
 
 from pipeline.build_core import build_core, load_tanzil
+from pipeline.build_morphology import build_morphology_pack
 from pipeline.build_translation import build_translation_pack, verse_ids
 from pipeline.compress import compress_pack
 from pipeline.errors import PipelineError
 from pipeline.paths import dist_dir
-from pipeline.schema import build_timestamp
+from pipeline.schema import build_epoch, build_timestamp
 from pipeline.sources import Source, load_all
 
 TANZIL = "tanzil"
@@ -22,6 +23,12 @@ TANZIL = "tanzil"
 def translation_sources(sources: list[Source]) -> list[Source]:
     """Sources whose ``[pack]`` is a translation, sorted by pack id."""
     found = [s for s in sources if s.pack is not None and s.pack.type == "translation"]
+    return sorted(found, key=lambda s: s.pack.id if s.pack else "")
+
+
+def morphology_sources(sources: list[Source]) -> list[Source]:
+    """Sources whose ``[pack]`` is a morphology pack, sorted by pack id."""
+    found = [s for s in sources if s.pack is not None and s.pack.type == "morphology"]
     return sorted(found, key=lambda s: s.pack.id if s.pack else "")
 
 
@@ -37,8 +44,14 @@ def run_build() -> list[Path]:
     translations = translation_sources(sources)
     bundled = [s for s in translations if s.pack is not None and s.pack.bundled]
     written = [build_core(out / "core.db", tanzil=tanzil, bundled=bundled, built_at=built_at)]
-    ids = verse_ids(load_tanzil(tanzil).metadata)
+    inputs = load_tanzil(tanzil)
+    ids = verse_ids(inputs.metadata)
     for source in translations:
         sqlite_path = build_translation_pack(source, ids, out, built_at)
         written += [sqlite_path, compress_pack(sqlite_path)]
+    verses = {(a.surah, a.ayah): a.text for a in inputs.uthmani.verses}
+    for source in morphology_sources(sources):
+        written += build_morphology_pack(
+            source, verses, ids, out, built_at=built_at, mtime=build_epoch()
+        )
     return written

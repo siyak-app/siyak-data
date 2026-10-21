@@ -35,6 +35,19 @@ def compress_pack(src: Path) -> Path:
     return out
 
 
+def frame_content_size(src: Path) -> int:
+    """The decompressed size declared in the zstd frame header (set by :func:`compress_pack`)."""
+    with src.open("rb") as fh:
+        header = fh.read(_FRAME_HEADER_MAX)
+    try:
+        size = int(zstandard.get_frame_parameters(header).content_size)
+    except zstandard.ZstdError as exc:
+        raise PipelineError(f"{src.name}: not a valid zstd file: {exc}") from exc
+    if size == zstandard.CONTENTSIZE_UNKNOWN:
+        raise PipelineError(f"{src.name}: zstd frame does not declare its content size")
+    return size
+
+
 def decompress_pack(src: Path, dest: Path, max_size: int) -> Path:
     """Decompress ``src`` to ``dest``; fail if the output would exceed ``max_size`` bytes."""
     with src.open("rb") as fh:

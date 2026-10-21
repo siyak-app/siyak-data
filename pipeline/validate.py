@@ -17,21 +17,22 @@ import sqlite3
 import tempfile
 from collections import Counter
 from collections.abc import Iterable
-from dataclasses import dataclass, field
 from pathlib import Path
 
-from pipeline.build import TANZIL, translation_sources
+from pipeline.build import TANZIL, morphology_sources, translation_sources
 from pipeline.build_core import METADATA
-from pipeline.build_translation import packs_row, require_pack, source_version
+from pipeline.build_translation import require_pack, source_version
 from pipeline.compress import SUFFIX, decompress_pack
 from pipeline.errors import PipelineError
 from pipeline.fetch import verify_cached
-from pipeline.install import check_pack_structure, install_pack
+from pipeline.gates import Report, install_into_core_copy
+from pipeline.install import check_pack_structure
 from pipeline.normalize import REMOVALS, normalize, rule_counts
 from pipeline.paths import repo_root
 from pipeline.schema import SCHEMA_VERSION, apply_content_schema, read_pack_info, schema_shape
 from pipeline.sources import Source, load_all
 from pipeline.tanzil import parse_metadata
+from pipeline.validate_morphology import check_alignment, check_morphology_pack
 
 FULL_SURAHS = 114
 FULL_VERSES = 6236
@@ -40,19 +41,6 @@ NO_BISMILLAH = {1, 9}
 #: Characters that must never occur in text_clean (normalization rules N1–N4).
 HARAKAT_RULES = ("N1", "N2", "N3", "N4")
 VECTORS = repo_root() / "tests" / "normalize_vectors.json"
-
-
-@dataclass
-class Report:
-    """Collected failures and informational lines of one validation run."""
-
-    failures: list[str] = field(default_factory=list)
-    info: list[str] = field(default_factory=list)
-
-    def check(self, ok: bool, message: str) -> bool:
-        if not ok:
-            self.failures.append(message)
-        return ok
 
 
 def _forbidden_clean_chars() -> set[str]:
@@ -240,41 +228,6 @@ def unpack_published(sqlite_path: Path, tmp: Path, report: Report) -> Path | Non
     return out if same else None
 
 
-def install_into_core_copy(
-    core: Path, packs: list[tuple[Path, Source]], schema_sql: list[str] | None = None
-) -> sqlite3.Connection:
-    """Create a content database (from schema/content.sql or ``schema_sql`` migrations),
-    load core.db's data into it, install the packs with foreign keys on, and return it.
-    """
-    conn = sqlite3.connect(":memory:")
-    if schema_sql is None:
-        apply_content_schema(conn)
-    else:
-        for script in schema_sql:
-            conn.executescript(script)
-    conn.execute("PRAGMA foreign_keys = ON")
-    conn.execute("ATTACH DATABASE ? AS core", (str(core),))
-    tables = [
-        r[0]
-        for r in conn.execute(
-            "SELECT name FROM core.sqlite_master WHERE type = 'table' "
-            "AND sql NOT LIKE 'CREATE VIRTUAL%' AND name NOT LIKE '%fts_%'"
-        )
-    ]
-    with conn:
-        for table in ["surahs", "verses", *[t for t in tables if t not in ("surahs", "verses")]]:
-            columns = [r[1] for r in conn.execute(f"PRAGMA core.table_info({table})")]
-            names = ", ".join(columns)
-            conn.execute(f"INSERT INTO main.{table} ({names}) SELECT {names} FROM core.{table}")
-    conn.execute("DETACH DATABASE core")
-    for path, source in packs:
-        install_pack(conn, path, packs_row(source, installed_at="test", bundled=False))
-    problems = conn.execute("PRAGMA foreign_key_check").fetchall()
-    if problems:
-        raise PipelineError(f"foreign key violations after install: {problems[:5]}")
-    return conn
-
-
 def check_sources(sources: list[Source], report: Report) -> None:
     """Every pinned input still matches, and pack metadata is complete."""
     for source in sources:
@@ -343,6 +296,13 @@ def run_validate(dist: Path, profile: str) -> Report:
             report.check(
                 bundled == (1,), f"core.db: packs row for {pack.id} missing or not bundled"
             )
+    for source in morphology_sources(sources):
+        # A broken core.db or pack must show up as gate failures, not a crash.
+        for gate in (check_alignment, check_morphology_pack):
+            try:
+                gate(dist, source, core, report)
+            except PipelineError as exc:
+                report.check(False, f"{require_pack(source).id}: {exc}")
     for path in sorted(dist.glob("*.db")) + sorted(dist.glob("*.sqlite")):
         report.info.append(f"{path.name}: {path.stat().st_size:,} bytes")
     report.info.append(

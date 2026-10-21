@@ -45,15 +45,19 @@ class PackInfo:
     source_version: str
 
 
-def build_timestamp() -> str:
-    """Return the build time as ``YYYY-MM-DDTHH:MM:SSZ``.
+def build_epoch() -> int:
+    """Return the build time in seconds since the epoch.
 
     Uses ``SOURCE_DATE_EPOCH`` when set (release builds), so rebuilds are
     reproducible; otherwise the current time.
     """
     epoch = os.environ.get("SOURCE_DATE_EPOCH")
-    moment = datetime.fromtimestamp(int(epoch), UTC) if epoch else datetime.now(UTC)
-    return moment.strftime("%Y-%m-%dT%H:%M:%SZ")
+    return int(epoch) if epoch else int(datetime.now(UTC).timestamp())
+
+
+def build_timestamp() -> str:
+    """Return the build time (:func:`build_epoch`) as ``YYYY-MM-DDTHH:MM:SSZ``."""
+    return datetime.fromtimestamp(build_epoch(), UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 def new_database(path: Path) -> sqlite3.Connection:

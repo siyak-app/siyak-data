@@ -19,6 +19,7 @@ import sqlite3
 from pathlib import Path
 from typing import Any
 
+from pipeline.archive import extract_archive
 from pipeline.build_translation import upsert_packs_row
 from pipeline.errors import PipelineError
 from pipeline.schema import SCHEMA_VERSION, read_pack_info
@@ -26,6 +27,29 @@ from pipeline.schema import SCHEMA_VERSION, read_pack_info
 #: Tables (and their columns) a pack of each type may contain besides pack_info.
 PACK_TABLES: dict[str, dict[str, tuple[str, ...]]] = {
     "translation": {"translations": ("pack_id", "verse_id", "text")},
+    "morphology": {
+        "words": ("id", "verse_id", "position", "text_ar", "translit", "gloss_en"),
+        "roots": ("id", "root"),
+        "lemmas": ("id", "lemma", "root_id"),
+        "word_segments": (
+            "word_id", "idx", "kind", "text_ar", "pos", "lemma_id", "root_id", "features",
+        ),
+    },
+}  # fmt: skip
+
+#: Archive packs: the database member and every member the archive must hold.
+ARCHIVE_LAYOUT: dict[str, tuple[str, frozenset[str]]] = {
+    "morphology": (
+        "morphology.sqlite",
+        frozenset(
+            {
+                "morphology.sqlite",
+                "qac/COPYING",
+                "qac/NOTICE",
+                "qac/quranic-corpus-morphology-0.4.txt",
+            }
+        ),
+    ),
 }
 
 PACK_INFO_COLUMNS = ("id", "type", "version", "schema_version", "built_at", "source_version")
@@ -60,7 +84,7 @@ def check_pack_structure(conn: sqlite3.Connection, pack_type: str, schema: str =
 
 
 def install_pack(conn: sqlite3.Connection, pack_path: Path, packs_row: dict[str, Any]) -> None:
-    """Install one pack file into ``conn`` (a content.db) the way the app does.
+    """Install one pack database into ``conn`` (a content.db) the way the app does.
 
     ``packs_row`` is the row the app writes to ``packs`` from the manifest entry.
     """
@@ -85,6 +109,10 @@ def install_pack(conn: sqlite3.Connection, pack_path: Path, packs_row: dict[str,
         conn.execute("DETACH DATABASE pack")
 
 
+#: Insert order that satisfies the foreign keys (roots ← lemmas, words ← segments).
+_MORPHOLOGY_ORDER = ("roots", "lemmas", "words", "word_segments")
+
+
 def _copy_rows(conn: sqlite3.Connection, pack_id: str, pack_type: str) -> None:
     if pack_type == "translation":
         conn.execute("DELETE FROM translations_fts WHERE pack_id = ?", (pack_id,))
@@ -101,4 +129,35 @@ def _copy_rows(conn: sqlite3.Connection, pack_id: str, pack_type: str) -> None:
             (pack_id,),
         )
         return
+    if pack_type == "morphology":
+        # v1 keeps one morphology pack at a time: the morphology tables have no
+        # pack_id, so installing one replaces all morphology data (pack-format §4.4).
+        conn.execute("DELETE FROM packs WHERE type = 'morphology' AND id != ?", (pack_id,))
+        for table in reversed(_MORPHOLOGY_ORDER):
+            conn.execute(f"DELETE FROM {table}")
+        for table in _MORPHOLOGY_ORDER:
+            names = ", ".join(PACK_TABLES["morphology"][table])
+            conn.execute(f"INSERT INTO main.{table} ({names}) SELECT {names} FROM pack.{table}")
+        return
     raise PipelineError(f"no install rule for pack type '{pack_type}'")
+
+
+def install_archive_pack(
+    conn: sqlite3.Connection,
+    archive: Path,
+    packs_row: dict[str, Any],
+    work_dir: Path,
+    max_size: int,
+) -> dict[str, Path]:
+    """Unpack an archive pack safely, install its database, return its files.
+
+    The app keeps the returned non-database files (e.g. the original QAC file
+    and its NOTICE) in the pack's directory under app data.
+    """
+    layout = ARCHIVE_LAYOUT.get(str(packs_row["type"]))
+    if layout is None:
+        raise PipelineError(f"pack type '{packs_row['type']}' is not an archive pack")
+    db_member, members = layout
+    files = extract_archive(archive, work_dir, expected=set(members), max_size=max_size)
+    install_pack(conn, files[db_member], packs_row)
+    return files
