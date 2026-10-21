@@ -20,14 +20,14 @@ name = "ar-tafseer-al-qurtubi.db.zip"
 url = "https://qul.tarteel.ai/resources/tafsir/23"
 manual = true
 version = "2025-05-26"
-sha256 = ""
+sha256 = "853987dd4abbc9afcbe5ee16e40b0c59d1166b982b549b073ff112f886e06180"
 note = "As downloaded from QUL; holds only ar-tafseer-al-qurtubi.db (dated 2025-05-26). Not mirrored before permission."
 
 [[files]]
 name = "ar-tafseer-al-qurtubi.db"
 extract_from = "ar-tafseer-al-qurtubi.db.zip"
 version = "2025-05-26"
-sha256 = ""
+sha256 = "c8b33ba2f47d2ea235ec9f3e41e5705f3aafe68e35ce01f1e171f7f348a0acb9"
 note = "SQLite: table tafsir (ayah_key, group_ayah_key, from_ayah, to_ayah, ayah_keys, text)."
 
 [build]
