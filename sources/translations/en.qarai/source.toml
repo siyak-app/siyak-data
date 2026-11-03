@@ -8,9 +8,9 @@ license = "Tanzil terms: non-commercial use. Rights in the translation not verif
 attribution = "Translation: Ali Quli Qarai. Digitized text: Tanzil Project (https://tanzil.net/trans/)"
 notes = """
 The file header has no license terms. The terms below are from the translations
-page on tanzil.net. Not published: who holds the rights to the translation and
-whether it may be redistributed inside an app are still open (docs/adding-a-source.md,
-checklist questions 1, 2 and 4).
+page on tanzil.net. Who holds the rights to the translation and whether it may be
+redistributed inside an app were not verified (docs/adding-a-source.md, checklist
+questions 1, 2 and 4). The project maintainer decided to publish on 2026-11-03.
 """
 
 [source.terms]
@@ -45,7 +45,7 @@ version = "1.0.0"
 min_app_version = "0.1.0"
 license = "Non-commercial use (Tanzil terms)"
 attribution = "Digitized text: Tanzil Project (https://tanzil.net/trans/)"
-publish = false
+publish = true
 
 [pack.license_terms]
 tr = [

@@ -5,7 +5,7 @@
 | Translator | Ahmed Raza Khan |
 | Digitized text | Tanzil Project, <https://tanzil.net/trans/en.ahmedraza>, "Last Update: July 17, 2011" |
 | License | Tanzil terms: non-commercial use. Rights in the translation not verified |
-| Used in | Standalone pack `en.ahmedraza.sqlite`, **not published** (`publish = false`) |
+| Used in | Standalone pack `en.ahmedraza.sqlite` |
 
 ## Terms
 
@@ -27,16 +27,17 @@ page states:
 |---|---|
 | Non-commercial use | Siyak is non-commercial. Shown in the pack's `license_terms` |
 | Link back when using more than three translations | The link is in the pack's `attribution` and `license_terms` |
-| The list may not be redistributed on another website without permission | Open: see below |
+| The list may not be redistributed on another website without permission | Not confirmed with Tanzil: see below |
 
-## Why it is not published
+## Publication decision
 
-The text can be built and validated, but three questions from
-`docs/adding-a-source.md` are open: who holds the rights to this translation,
-which edition it is, and whether it may be redistributed as a downloadable file
-inside an app. Tanzil's non-commercial term cannot grant rights that Tanzil does
-not hold, and whether its "list" term covers a set of packs on GitHub Releases is
-unclear. Set `publish = true` only after the maintainer has decided this.
+Three questions from `docs/adding-a-source.md` were not verified: who holds the
+rights to this translation, which edition it is, and whether it may be
+redistributed as a downloadable file inside an app. Tanzil's non-commercial term
+cannot grant rights that Tanzil does not hold, and whether its "list" term covers
+a set of packs on GitHub Releases is unclear. The project maintainer decided to
+publish on this basis on 2026-11-03. If a rights holder or Tanzil objects, set
+`publish = false` and make a new data release.
 
 ## Format
 
