@@ -1,0 +1,65 @@
+# Wahiduddin Khan, English translation, from Tanzil. See README.md in this directory.
+
+[source]
+id = "en.wahiduddin"
+name = "Tanzil Project translations: Wahiduddin Khan"
+homepage = "https://tanzil.net/trans/"
+license = "Tanzil terms: non-commercial use. Rights in the translation not verified"
+attribution = "Translation: Wahiduddin Khan. Digitized text: Tanzil Project (https://tanzil.net/trans/)"
+notes = """
+The file header has no license terms. The terms below are from the translations
+page on tanzil.net. Not published: who holds the rights to the translation and
+whether it may be redistributed inside an app are still open (docs/adding-a-source.md,
+checklist questions 1, 2 and 4).
+"""
+
+[source.terms]
+# Verbatim from https://tanzil.net/trans/ (retrieved 2026-11-03).
+text = """
+The translations provided at this page are for non-commercial purposes only.
+If used otherwise, you need to obtain necessary permission from the translator
+or the publisher.
+
+If you are using more than three of the following translations in a website or
+application, we require you to put a link back to this page to make sure that
+subsequent users have access to the latest updates.
+
+Redistributing the following list in another website is not allowed, unless
+direct permission is granted by the Tanzil Project.
+"""
+url = "https://tanzil.net/trans/"
+
+[[files]]
+name = "en.wahiduddin.txt"
+url = "https://tanzil.net/trans/en.wahiduddin"
+version = "2011-08-25"
+sha256 = "7f780cd36dccb4685a14579508cab4e962d71b7a0f34bd7175ce220a346f72fd"
+
+[pack]
+id = "en.wahiduddin"
+type = "translation"
+lang = "en"
+title = { tr = "Wahiduddin Khan İngilizce Meali", en = "Wahiduddin Khan English Translation" }
+author = "Wahiduddin Khan"
+version = "1.0.0"
+min_app_version = "0.1.0"
+license = "Non-commercial use (Tanzil terms)"
+attribution = "Digitized text: Tanzil Project (https://tanzil.net/trans/)"
+publish = false
+
+[pack.license_terms]
+tr = [
+  "Tanzil çevirileri yalnızca ticari olmayan kullanım için sunar; başka kullanımlar için çevirmenden veya yayıncıdan izin gerekir.",
+  "Çevirinin güncel hâli ve Tanzil'in çeviri listesi: https://tanzil.net/trans/",
+  "Tanzil, çevirilerin doğruluğunu garanti etmez.",
+]
+en = [
+  "Tanzil provides its translations for non-commercial use only; any other use needs permission from the translator or the publisher.",
+  "Latest updates and Tanzil's list of translations: https://tanzil.net/trans/",
+  "Tanzil does not guarantee the accuracy of its translations.",
+]
+
+[pack.citation]
+type = "translation"
+author = "Wahiduddin Khan"
+title = "Wahiduddin Khan English Translation"

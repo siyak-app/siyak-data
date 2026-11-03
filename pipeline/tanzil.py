@@ -164,14 +164,22 @@ class Translation:
 
 
 def parse_translation(path: Path) -> Translation:
-    """Parse a Tanzil translation text file; reject malformed or duplicate lines."""
+    """Parse a Tanzil translation text file; reject malformed or duplicate lines.
+
+    A line starting with a space continues the previous verse (en.hilali has stray
+    line breaks in a few verses). Only the line break is lost.
+    """
     verses: dict[tuple[int, int], str] = {}
     header: list[str] = []
+    key: tuple[int, int] | None = None
     for number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
         if line.startswith("#"):
             header.append(line)
             continue
         if not line.strip():
+            continue
+        if line.startswith(" ") and key is not None:
+            verses[key] += line
             continue
         parts = line.split("|", 2)
         if len(parts) != 3 or not parts[0].isdigit() or not parts[1].isdigit():

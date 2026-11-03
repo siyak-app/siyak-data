@@ -1,0 +1,65 @@
+# Edip Yüksel, Turkish translation, from Tanzil. See README.md in this directory.
+
+[source]
+id = "tr.yuksel"
+name = "Tanzil Project translations: Edip Yüksel"
+homepage = "https://tanzil.net/trans/"
+license = "Tanzil terms: non-commercial use. Rights in the translation not verified"
+attribution = "Translation: Edip Yüksel. Digitized text: Tanzil Project (https://tanzil.net/trans/)"
+notes = """
+The file header has no license terms. The terms below are from the translations
+page on tanzil.net. Not published: who holds the rights to the translation and
+whether it may be redistributed inside an app are still open (docs/adding-a-source.md,
+checklist questions 1, 2 and 4).
+"""
+
+[source.terms]
+# Verbatim from https://tanzil.net/trans/ (retrieved 2026-11-03).
+text = """
+The translations provided at this page are for non-commercial purposes only.
+If used otherwise, you need to obtain necessary permission from the translator
+or the publisher.
+
+If you are using more than three of the following translations in a website or
+application, we require you to put a link back to this page to make sure that
+subsequent users have access to the latest updates.
+
+Redistributing the following list in another website is not allowed, unless
+direct permission is granted by the Tanzil Project.
+"""
+url = "https://tanzil.net/trans/"
+
+[[files]]
+name = "tr.yuksel.txt"
+url = "https://tanzil.net/trans/tr.yuksel"
+version = "2010-06-04"
+sha256 = "755ce5abb514fb7a5b74ca59589435753a4ada69d4d9eb41e203840805132f5f"
+
+[pack]
+id = "tr.yuksel"
+type = "translation"
+lang = "tr"
+title = { tr = "Edip Yüksel Türkçe Meali", en = "Edip Yüksel Turkish Translation" }
+author = "Edip Yüksel"
+version = "1.0.0"
+min_app_version = "0.1.0"
+license = "Non-commercial use (Tanzil terms)"
+attribution = "Digitized text: Tanzil Project (https://tanzil.net/trans/)"
+publish = false
+
+[pack.license_terms]
+tr = [
+  "Tanzil çevirileri yalnızca ticari olmayan kullanım için sunar; başka kullanımlar için çevirmenden veya yayıncıdan izin gerekir.",
+  "Çevirinin güncel hâli ve Tanzil'in çeviri listesi: https://tanzil.net/trans/",
+  "Tanzil, çevirilerin doğruluğunu garanti etmez.",
+]
+en = [
+  "Tanzil provides its translations for non-commercial use only; any other use needs permission from the translator or the publisher.",
+  "Latest updates and Tanzil's list of translations: https://tanzil.net/trans/",
+  "Tanzil does not guarantee the accuracy of its translations.",
+]
+
+[pack.citation]
+type = "translation"
+author = "Edip Yüksel"
+title = "Edip Yüksel Turkish Translation"

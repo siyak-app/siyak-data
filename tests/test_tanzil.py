@@ -57,3 +57,12 @@ def test_translation_parser(tmp_path: Path) -> None:
     bad.write_text("1-1-a\n", encoding="utf-8")
     with pytest.raises(PipelineError, match=r"not a 'surah\|ayah\|text' line"):
         parse_translation(bad)
+    bad.write_text(" a\n", encoding="utf-8")
+    with pytest.raises(PipelineError, match=r"not a 'surah\|ayah\|text' line"):
+        parse_translation(bad)
+
+
+def test_translation_parser_joins_continuation_lines(tmp_path: Path) -> None:
+    path = tmp_path / "t.txt"
+    path.write_text("1|1|one, \n two, \n three\n1|2|next\n", encoding="utf-8")
+    assert parse_translation(path).verses == {(1, 1): "one,  two,  three", (1, 2): "next"}

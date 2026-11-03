@@ -1,0 +1,65 @@
+# Sarwar, English translation, from Tanzil. See README.md in this directory.
+
+[source]
+id = "en.sarwar"
+name = "Tanzil Project translations: Sarwar"
+homepage = "https://tanzil.net/trans/"
+license = "Tanzil terms: non-commercial use. Rights in the translation not verified"
+attribution = "Translation: Muhammad Sarwar. Digitized text: Tanzil Project (https://tanzil.net/trans/)"
+notes = """
+The file header has no license terms. The terms below are from the translations
+page on tanzil.net. Not published: who holds the rights to the translation and
+whether it may be redistributed inside an app are still open (docs/adding-a-source.md,
+checklist questions 1, 2 and 4).
+"""
+
+[source.terms]
+# Verbatim from https://tanzil.net/trans/ (retrieved 2026-11-03).
+text = """
+The translations provided at this page are for non-commercial purposes only.
+If used otherwise, you need to obtain necessary permission from the translator
+or the publisher.
+
+If you are using more than three of the following translations in a website or
+application, we require you to put a link back to this page to make sure that
+subsequent users have access to the latest updates.
+
+Redistributing the following list in another website is not allowed, unless
+direct permission is granted by the Tanzil Project.
+"""
+url = "https://tanzil.net/trans/"
+
+[[files]]
+name = "en.sarwar.txt"
+url = "https://tanzil.net/trans/en.sarwar"
+version = "2012-07-30"
+sha256 = "b114040f80d10623b84fe432506494f08ccd30f2b2c33309dab620011982b0d3"
+
+[pack]
+id = "en.sarwar"
+type = "translation"
+lang = "en"
+title = { tr = "Sarwar İngilizce Meali", en = "Sarwar English Translation" }
+author = "Muhammad Sarwar"
+version = "1.0.0"
+min_app_version = "0.1.0"
+license = "Non-commercial use (Tanzil terms)"
+attribution = "Digitized text: Tanzil Project (https://tanzil.net/trans/)"
+publish = false
+
+[pack.license_terms]
+tr = [
+  "Tanzil çevirileri yalnızca ticari olmayan kullanım için sunar; başka kullanımlar için çevirmenden veya yayıncıdan izin gerekir.",
+  "Çevirinin güncel hâli ve Tanzil'in çeviri listesi: https://tanzil.net/trans/",
+  "Tanzil, çevirilerin doğruluğunu garanti etmez.",
+]
+en = [
+  "Tanzil provides its translations for non-commercial use only; any other use needs permission from the translator or the publisher.",
+  "Latest updates and Tanzil's list of translations: https://tanzil.net/trans/",
+  "Tanzil does not guarantee the accuracy of its translations.",
+]
+
+[pack.citation]
+type = "translation"
+author = "Muhammad Sarwar"
+title = "Sarwar English Translation"

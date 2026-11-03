@@ -1,0 +1,65 @@
+# Mubarakpuri, English translation, from Tanzil. See README.md in this directory.
+
+[source]
+id = "en.mubarakpuri"
+name = "Tanzil Project translations: Mubarakpuri"
+homepage = "https://tanzil.net/trans/"
+license = "Tanzil terms: non-commercial use. Rights in the translation not verified"
+attribution = "Translation: Safi-ur-Rahman al-Mubarakpuri. Digitized text: Tanzil Project (https://tanzil.net/trans/)"
+notes = """
+The file header has no license terms. The terms below are from the translations
+page on tanzil.net. Not published: who holds the rights to the translation and
+whether it may be redistributed inside an app are still open (docs/adding-a-source.md,
+checklist questions 1, 2 and 4).
+"""
+
+[source.terms]
+# Verbatim from https://tanzil.net/trans/ (retrieved 2026-11-03).
+text = """
+The translations provided at this page are for non-commercial purposes only.
+If used otherwise, you need to obtain necessary permission from the translator
+or the publisher.
+
+If you are using more than three of the following translations in a website or
+application, we require you to put a link back to this page to make sure that
+subsequent users have access to the latest updates.
+
+Redistributing the following list in another website is not allowed, unless
+direct permission is granted by the Tanzil Project.
+"""
+url = "https://tanzil.net/trans/"
+
+[[files]]
+name = "en.mubarakpuri.txt"
+url = "https://tanzil.net/trans/en.mubarakpuri"
+version = "2015-06-20"
+sha256 = "8e5b944c1ff50eeff430a1385e591e166db5d619f6712a52e514b592507f1d15"
+
+[pack]
+id = "en.mubarakpuri"
+type = "translation"
+lang = "en"
+title = { tr = "Mubarakpuri İngilizce Meali", en = "Mubarakpuri English Translation" }
+author = "Safi-ur-Rahman al-Mubarakpuri"
+version = "1.0.0"
+min_app_version = "0.1.0"
+license = "Non-commercial use (Tanzil terms)"
+attribution = "Digitized text: Tanzil Project (https://tanzil.net/trans/)"
+publish = false
+
+[pack.license_terms]
+tr = [
+  "Tanzil çevirileri yalnızca ticari olmayan kullanım için sunar; başka kullanımlar için çevirmenden veya yayıncıdan izin gerekir.",
+  "Çevirinin güncel hâli ve Tanzil'in çeviri listesi: https://tanzil.net/trans/",
+  "Tanzil, çevirilerin doğruluğunu garanti etmez.",
+]
+en = [
+  "Tanzil provides its translations for non-commercial use only; any other use needs permission from the translator or the publisher.",
+  "Latest updates and Tanzil's list of translations: https://tanzil.net/trans/",
+  "Tanzil does not guarantee the accuracy of its translations.",
+]
+
+[pack.citation]
+type = "translation"
+author = "Safi-ur-Rahman al-Mubarakpuri"
+title = "Mubarakpuri English Translation"
