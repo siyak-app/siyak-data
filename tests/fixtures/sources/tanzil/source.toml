@@ -52,7 +52,7 @@ name = "quran-uthmani.xml"
 # Tanzil's default form options for Uthmani: pause marks, sajdah signs and
 # tatweel below superscript alefs on; rub-el-hizb signs off.
 url = "https://tanzil.net/pub/download/index.php?marks=true&sajdah=true&alef=true&tatweel=true&quranType=uthmani&outType=xml&agree=true"
-mirror = "https://github.com/siyak/siyak-data/releases/download/sources-tanzil-1.1/quran-uthmani.xml"
+mirror = "https://github.com/siyak-app/siyak-data/releases/download/sources-tanzil-1.1/quran-uthmani.xml"
 version = "1.1"
 sha256 = "618652b167199289c760727d9d26a7446d20f1cfb198ad7e91a4197c45c90a78"
 
@@ -60,14 +60,14 @@ sha256 = "618652b167199289c760727d9d26a7446d20f1cfb198ad7e91a4197c45c90a78"
 name = "quran-simple-clean.xml"
 # No options: with marks=true Tanzil adds pause marks even to Simple Clean.
 url = "https://tanzil.net/pub/download/index.php?quranType=simple-clean&outType=xml&agree=true"
-mirror = "https://github.com/siyak/siyak-data/releases/download/sources-tanzil-1.1/quran-simple-clean.xml"
+mirror = "https://github.com/siyak-app/siyak-data/releases/download/sources-tanzil-1.1/quran-simple-clean.xml"
 version = "1.1"
 sha256 = "38a4ed0ceb5a2c48d992ad16fd64597f7d495b5ac9e3d53b85ea843ea3323b00"
 
 [[files]]
 name = "quran-data.xml"
 url = "https://tanzil.net/res/text/metadata/quran-data.xml"
-mirror = "https://github.com/siyak/siyak-data/releases/download/sources-tanzil-1.1/quran-data.xml"
+mirror = "https://github.com/siyak-app/siyak-data/releases/download/sources-tanzil-1.1/quran-data.xml"
 version = "1.0"
 sha256 = "8867c1d88191472adec9db694b3cd9f135b1a2ef580574d32cf888dcb22c5c7a"
 note = "Metadata: surahs (name, tname, type, ayas), juz start points. License attribute: cc-by."

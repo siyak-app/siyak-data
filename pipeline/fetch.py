@@ -30,7 +30,7 @@ import httpx
 from pipeline.errors import PipelineError
 from pipeline.sources import Source, SourceFile
 
-USER_AGENT = "siyak-data (+https://github.com/siyak/siyak-data)"
+USER_AGENT = "siyak-data (+https://github.com/siyak-app/siyak-data)"
 TIMEOUT = httpx.Timeout(60.0, connect=20.0)
 
 

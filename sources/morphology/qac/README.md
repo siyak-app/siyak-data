@@ -41,7 +41,7 @@ either text.
 ## Mirror
 
 ```sh
-gh release create sources-qac-0.4 --repo siyak/siyak-data \
+gh release create sources-qac-0.4 --repo siyak-app/siyak-data --latest=false \
   --title "Source mirror: Quranic Arabic Corpus 0.4" \
   --notes "Verbatim copies (see sources/morphology/qac/README.md)." \
   .cache/morphology.qac/quranic-corpus-morphology-0.4.zip .cache/morphology.qac/COPYING

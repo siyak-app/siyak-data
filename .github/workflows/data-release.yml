@@ -54,6 +54,7 @@ jobs:
             echo '```'
           } > notes.md
           gh release create "$GITHUB_REF_NAME" \
+            --latest \
             --title "$GITHUB_REF_NAME" \
             --notes-file notes.md \
             dist/core.db dist/*.sqlite.zst dist/*.tar.zst dist/manifest.json dist/pricing.json \
@@ -63,7 +64,7 @@ jobs:
       # Ask the app repository to copy manifest.json and pricing.json to the
       # website (spec §6.3). Disabled until the token exists.
       # TODO: create a fine-grained personal access token with
-      #   "Contents: read and write" on siyak/siyak only (repository_dispatch
+      #   "Contents: read and write" on siyak-app/siyak only (repository_dispatch
       #   requires it), store it as the secret SIYAK_APP_DISPATCH_TOKEN in this
       #   repository, then set the repository variable DISPATCH_TO_APP=true.
       - name: Notify the app repository

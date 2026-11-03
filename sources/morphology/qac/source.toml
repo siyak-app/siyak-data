@@ -45,7 +45,7 @@ accepted_on = "2026-10-21"
 name = "quranic-corpus-morphology-0.4.zip"
 url = "https://corpus.quran.com/download/"
 manual = true
-mirror = "https://github.com/siyak/siyak-data/releases/download/sources-qac-0.4/quranic-corpus-morphology-0.4.zip"
+mirror = "https://github.com/siyak-app/siyak-data/releases/download/sources-qac-0.4/quranic-corpus-morphology-0.4.zip"
 version = "0.4"
 sha256 = "fda26f87cc58b42fc992a3ad666a562805b636f34bcecb46326d048337ca7999"
 note = "As downloaded; contains only quranic-corpus-morphology-0.4.txt (dated 2011-05-02)."
@@ -60,7 +60,7 @@ note = "The original file; ships byte-for-byte inside the pack (CRLF line ending
 [[files]]
 name = "COPYING"
 url = "https://www.gnu.org/licenses/gpl-3.0.txt"
-mirror = "https://github.com/siyak/siyak-data/releases/download/sources-qac-0.4/COPYING"
+mirror = "https://github.com/siyak-app/siyak-data/releases/download/sources-qac-0.4/COPYING"
 version = "GPL-3.0"
 sha256 = "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986"
 note = "QAC names no GPL version; GPL-3.0 chosen as allowed by the GPL ('any version ever published')."

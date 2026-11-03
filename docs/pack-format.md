@@ -382,7 +382,7 @@ files and each `source.toml` `[pack]` table. Shape (spec §6.3):
       "size": 256725,
       "installed_size": 1007616,
       "sha256": "…",
-      "url": "https://github.com/siyak/siyak-data/releases/download/data-2026.10.0/en.pickthall.sqlite.zst",
+      "url": "https://github.com/siyak-app/siyak-data/releases/download/data-2026.10.0/en.pickthall.sqlite.zst",
       "license": "Public domain",
       "license_terms": { "tr": ["…"], "en": ["…"] },
       "attribution": "…",

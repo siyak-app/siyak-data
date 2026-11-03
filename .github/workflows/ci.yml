@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       app_ref:
-        description: "Ref of siyak/siyak whose content migrations the schema-compat job uses"
+        description: "Ref of siyak-app/siyak whose content migrations the schema-compat job uses"
         required: false
         default: ""
 
@@ -55,7 +55,7 @@ jobs:
         continue-on-error: true
         uses: actions/checkout@v7
         with:
-          repository: siyak/siyak
+          repository: siyak-app/siyak
           ref: ${{ env.SIYAK_APP_REF }}
           path: app
           sparse-checkout: src-tauri/migrations/content
@@ -66,7 +66,7 @@ jobs:
           if [ "${{ steps.app.outcome }}" = "success" ] && compgen -G "$dir/*.sql" > /dev/null; then
             echo "available=true" >> "$GITHUB_OUTPUT"
           else
-            echo "skipped: app migrations not available (siyak/siyak@$SIYAK_APP_REF, $dir/)"
+            echo "skipped: app migrations not available (siyak-app/siyak@$SIYAK_APP_REF, $dir/)"
             echo "available=false" >> "$GITHUB_OUTPUT"
           fi
       - if: steps.migrations.outputs.available == 'true'

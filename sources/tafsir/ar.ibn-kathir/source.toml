@@ -22,7 +22,7 @@ url = "https://quranpedia.net/dumps/LICENSE.md"
 [[files]]
 name = "tafsir-book-136.json.gz"
 url = "https://quranpedia.net/dumps/tafsir-book-136.json.gz"
-mirror = "https://github.com/siyak/siyak-data/releases/download/sources-quranpedia-2026-10-20/tafsir-book-136.json.gz"
+mirror = "https://github.com/siyak-app/siyak-data/releases/download/sources-quranpedia-2026-10-20/tafsir-book-136.json.gz"
 version = "2026-10-20"
 sha256 = "26749df050617a92fb12e871395dcf1228a475e008d29035d71e61f75ed4f230"
 note = "Dump 2026-10-20; file built_at 2026-08-10T20:28:56+00:00; 8,335,420 bytes."

@@ -54,7 +54,7 @@ To create the mirror once (maintainer, after the hashes are confirmed and the
 files are in `.cache/tanzil/`):
 
 ```sh
-gh release create sources-tanzil-1.1 --repo siyak/siyak-data \
+gh release create sources-tanzil-1.1 --repo siyak-app/siyak-data --latest=false \
   --title "Source mirror: Tanzil 1.1" \
   --notes "Verbatim copies of the pinned Tanzil files (see sources/tanzil/README.md)." \
   .cache/tanzil/quran-uthmani.xml .cache/tanzil/quran-simple-clean.xml .cache/tanzil/quran-data.xml

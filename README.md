@@ -2,7 +2,7 @@
 
 [Türkçe](README.tr.md)
 
-The data pipeline of [Siyak](https://github.com/siyak/siyak), a free,
+The data pipeline of [Siyak](https://github.com/siyak-app/siyak), a free,
 open-source Quran research tool. It builds the content the app ships and
 downloads:
 
@@ -67,5 +67,5 @@ uv run siyak-data validate --profile fixtures
 Pushing a tag `data-YYYY.MM.N` runs `.github/workflows/data-release.yml`:
 fetch → build → validate → `SHA256SUMS` → manifest and pricing → GitHub release.
 The app reads the manifest from `https://quran.kemalozyon.com/data/manifest.json`,
-with `https://github.com/siyak/siyak-data/releases/latest/download/manifest.json`
+with `https://github.com/siyak-app/siyak-data/releases/latest/download/manifest.json`
 as fallback.

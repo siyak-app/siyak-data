@@ -2,7 +2,7 @@
 
 [English](README.md) · İngilizce sürümle son eşitleme: 2026-10-21 (ilk sürüm)
 
-Ücretsiz ve açık kaynak Kur'an araştırma aracı [Siyak](https://github.com/siyak/siyak)'ın
+Ücretsiz ve açık kaynak Kur'an araştırma aracı [Siyak](https://github.com/siyak-app/siyak)'ın
 veri hattı. Uygulamanın birlikte dağıttığı ve indirdiği içeriği üretir:
 
 - **`core.db`**: kurulum dosyasıyla gelir: Tanzil Kur'an metni (Osmanî ve
@@ -66,5 +66,5 @@ uv run siyak-data validate --profile fixtures
 `data-YYYY.MM.N` etiketi gönderildiğinde `.github/workflows/data-release.yml` çalışır:
 indir → derle → doğrula → `SHA256SUMS` → manifest ve fiyatlar → GitHub sürümü.
 Uygulama manifesti `https://quran.kemalozyon.com/data/manifest.json` adresinden,
-yedek olarak `https://github.com/siyak/siyak-data/releases/latest/download/manifest.json`
+yedek olarak `https://github.com/siyak-app/siyak-data/releases/latest/download/manifest.json`
 adresinden okur.

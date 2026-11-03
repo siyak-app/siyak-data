@@ -61,7 +61,7 @@ files on quranpedia.net are rebuilt in place. `fetch` therefore takes the
 pinned bytes from a siyak-data release:
 
 ```sh
-gh release create sources-quranpedia-2026-10-20 --repo siyak/siyak-data \
+gh release create sources-quranpedia-2026-10-20 --repo siyak-app/siyak-data --latest=false \
   --title "Source mirror: Quranpedia.net tafsir dumps 2026-10-20" \
   --notes "Verbatim copies. Source: Quranpedia.net (https://quranpedia.net), dump 2026-10-20. See sources/tafsir/quranpedia/README.md." \
   .cache/ar.*/tafsir-book-*.json.gz
