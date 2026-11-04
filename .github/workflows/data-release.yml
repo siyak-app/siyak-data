@@ -72,6 +72,6 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.SIYAK_APP_DISPATCH_TOKEN }}
         run: |
-          gh api repos/siyak/siyak/dispatches \
+          gh api repos/siyak-app/siyak/dispatches \
             -f event_type=data-release \
             -F "client_payload[tag]=$GITHUB_REF_NAME"
