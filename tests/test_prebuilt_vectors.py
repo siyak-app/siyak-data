@@ -5,6 +5,7 @@ from pathlib import Path
 import pytest
 
 from pipeline.build_embeddings import (
+    MIN_AGREEMENT_INT8,
     build_vector_pack,
     check_agreement,
     export_vectors,
@@ -117,6 +118,13 @@ def test_pinned_local_vectors_must_match_the_model_pack() -> None:
     b[2] = [0, 0.6, 0.8, 0]
     with pytest.raises(PipelineError, match="differ from the model pack"):
         check_agreement(a, b, "x")
+    # int8 kernels differ between CPUs; another model's vectors stay far below.
+    c = a.copy()
+    c[2] = [0, 0.2, 0.98, 0]
+    c[2] /= np.linalg.norm(c[2])
+    check_agreement(a, c, "x", MIN_AGREEMENT_INT8)
+    with pytest.raises(PipelineError, match="differ from the model pack"):
+        check_agreement(a, b, "x", MIN_AGREEMENT_INT8)
 
 
 def test_terms_ack_needs_terms(tmp_path: Path) -> None:
