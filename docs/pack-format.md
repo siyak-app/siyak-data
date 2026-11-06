@@ -475,8 +475,9 @@ With it, `fetch` downloads the file, and `build-embeddings` checks its sha256, t
 name has the pack's current version (a new version needs new vectors) and that it holds
 one unit vector per verse, then writes the pack from it. For a local pack the release
 also embeds the first 32 verses with the model pack it has just built and requires a
-cosine of at least 0.999 to the pinned vectors, so the vectors stay in the model's
-space. `validate` requires a published `api` pack to be pinned this way.
+cosine of at least 0.999 to the pinned vectors (0.95 for an int8 model, whose kernels
+differ between ONNX Runtime builds and CPUs: about 0.98 between a Mac and the Linux
+release runner), so the vectors stay in the model's space. `validate` requires a published `api` pack to be pinned this way.
 
 **Evaluation set.** `data/eval/semantic.toml` lists Turkish, English and Arabic
 queries with the verses a good result list should contain, and cross-references

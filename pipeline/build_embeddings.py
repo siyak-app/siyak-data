@@ -63,8 +63,13 @@ PREBUILT = "vectors.npy"
 VECTOR_INPUTS_TAG = "vector-inputs"
 #: Verses a release embeds again with its own model pack to check pinned local vectors.
 CHECK_VERSES = 32
-#: Least cosine similarity between pinned and re-embedded vectors.
+#: Least cosine similarity between pinned and re-embedded vectors of a float32 model.
 MIN_AGREEMENT = 0.999
+#: The same for an int8 model: ONNX Runtime picks different int8 kernels per build and
+#: CPU (bge-m3: about 0.975 between the app and the pipeline on one Mac, 0.98 between
+#: macOS arm64 and the Linux x86-64 release runner), which leaves evaluation rankings
+#: unchanged. Vectors of another model are far below (pack-format §4.9).
+MIN_AGREEMENT_INT8 = 0.95
 
 VECTORS_DDL = """
 CREATE TABLE vectors (
@@ -322,7 +327,12 @@ def build_vector_pack(
             else:
                 vectors = pinned
                 again = encoder.encode(texts[:CHECK_VERSES], spec.passage_prefix)
-                check_agreement(vectors[:CHECK_VERSES], again, str(source.path))
+                minimum = (
+                    MIN_AGREEMENT_INT8
+                    if model_source.extra.get("quantize") == "int8"
+                    else MIN_AGREEMENT
+                )
+                check_agreement(vectors[:CHECK_VERSES], again, str(source.path), minimum)
         check_matrix(vectors, spec.dim, str(source.path))
         model_pack = require_pack(model_source)
         inputs = [f"{model_pack.id}@{model_pack.version}", f"text {text}"]
@@ -379,16 +389,19 @@ def load_prebuilt(source: Source) -> Matrix | None:
     return vectors.astype(np.float32, copy=False)
 
 
-def check_agreement(pinned: Matrix, again: Matrix, where: str) -> None:
-    """Pinned local vectors must be what this release's model pack computes."""
+def check_agreement(
+    pinned: Matrix, again: Matrix, where: str, minimum: float = MIN_AGREEMENT
+) -> None:
+    """Pinned local vectors must be what this release's model pack computes, to a
+    cosine of at least ``minimum`` per verse."""
     import numpy as np  # noqa: PLC0415
 
     cosines = np.sum(pinned * again, axis=1)
     worst = float(cosines.min()) if len(cosines) else 1.0
-    if worst < MIN_AGREEMENT:
+    if worst < minimum:
         raise PipelineError(
             f"{where}: the pinned vectors differ from the model pack's (cosine {worst:.4f} < "
-            f"{MIN_AGREEMENT}); rebuild them and run export-vectors"
+            f"{minimum}); rebuild them and run export-vectors"
         )
 
 
