@@ -30,7 +30,9 @@ min_app_version = "0.1.0"
 license = "Non-commercial use (Tanzil terms: the vectors are computed from Tanzil translations)"
 attribution = "Computed with the Gemini API from the Tanzil Quran text (CC BY 3.0) and the Tanzil translations tr.vakfi and en.pickthall (https://tanzil.net)"
 requires = []
-publish = true
+# Not published until its verse vectors are built and pinned (the free tier allows
+# about 1,000 texts a day).
+publish = false
 terms_ack = true
 
 [pack.license_terms]
