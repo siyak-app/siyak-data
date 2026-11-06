@@ -9,6 +9,9 @@
 - ``<vectors id>.sqlite`` / ``.sqlite.zst``: ``pack_info`` and ``vectors(verse_id,
   embedding)``, one little-endian float32 vector per verse.
 
+An ``api`` vector pack has no model pack: its verses are embedded with the provider's API
+(:mod:`pipeline.api_embedding`), with the maintainers' key from the environment.
+
 Verse vectors are computed by :class:`OnnxEncoder` from the files of the built model pack,
 which mirrors the app's ``embed/onnx.rs`` (prefixes, truncation, padding, inputs by name,
 pooling, normalization), so the app's query vectors and these verse vectors share one space.
@@ -27,6 +30,7 @@ from contextlib import closing
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+from pipeline.api_embedding import ApiSpec, api_spec, encoder_for, passage_cache
 from pipeline.archive import build_archive, extract_archive
 from pipeline.build_translation import require_pack, source_version
 from pipeline.compress import MAX_PACK_SIZE, compress_pack
@@ -258,24 +262,46 @@ def vector_settings(source: Source, models: dict[str, Source]) -> tuple[Source, 
     return models[model_id], text
 
 
+def api_vector_settings(source: Source) -> tuple[ApiSpec, str]:
+    """The API settings and the verse text of an ``api`` vector pack."""
+    pack = require_pack(source)
+    where = f"{source.path}"
+    spec = api_spec(pack.meta, where)
+    if pack.requires:
+        raise PipelineError(f"{where}: an api vector pack requires no other pack")
+    text = str(source.extra.get("text", ""))
+    if text not in VARIANTS:
+        raise PipelineError(f"{where}: [build] text must be one of {', '.join(VARIANTS)}")
+    return spec, text
+
+
 def build_vector_pack(
     source: Source, models: dict[str, Source], out_dir: Path, *, built_at: str
 ) -> list[Path]:
-    """Build ``<id>.sqlite`` and ``<id>.sqlite.zst`` from the built model pack."""
+    """Build ``<id>.sqlite`` and ``<id>.sqlite.zst``: from the built model pack (``local``)
+    or with the provider's API (``api``, key from the environment)."""
     pack = require_pack(source)
     if pack.type != "vectors":
         raise PipelineError(f"{source.path}: pack type is '{pack.type}', not 'vectors'")
-    model_source, text = vector_settings(source, models)
-    spec = model_spec(model_source)
-    archive = out_dir / f"{require_pack(model_source).id}.tar.zst"
-    if not archive.exists():
-        raise PipelineError(f"{archive}: build the model pack first")
-    with tempfile.TemporaryDirectory(prefix="siyak-vectors-") as tmp:
-        encoder = OnnxEncoder(unpack_model(archive, Path(tmp)), spec)
-        vectors = encoder.encode(verse_texts(text), spec.passage_prefix)
-    check_matrix(vectors, spec.dim, str(source.path))
-    model_pack = require_pack(model_source)
-    inputs = [f"{model_pack.id}@{model_pack.version}", f"text {text}"]
+    if pack.meta.get("backend") == "api":
+        api, text = api_vector_settings(source)
+        vectors = encoder_for(api).encode(
+            verse_texts(text), "passage", cache=passage_cache(api, text)
+        )
+        check_matrix(vectors, api.dim, str(source.path))
+        inputs = [f"{api.embedding_model} ({api.dim})", f"text {text}"]
+    else:
+        model_source, text = vector_settings(source, models)
+        spec = model_spec(model_source)
+        archive = out_dir / f"{require_pack(model_source).id}.tar.zst"
+        if not archive.exists():
+            raise PipelineError(f"{archive}: build the model pack first")
+        with tempfile.TemporaryDirectory(prefix="siyak-vectors-") as tmp:
+            encoder = OnnxEncoder(unpack_model(archive, Path(tmp)), spec)
+            vectors = encoder.encode(verse_texts(text), spec.passage_prefix)
+        check_matrix(vectors, spec.dim, str(source.path))
+        model_pack = require_pack(model_source)
+        inputs = [f"{model_pack.id}@{model_pack.version}", f"text {text}"]
     info = PackInfo(pack.id, pack.type, pack.version, SCHEMA_VERSION, built_at, "; ".join(inputs))
     db = out_dir / f"{pack.id}.sqlite"
     with closing(new_database(db)) as conn:

@@ -16,3 +16,6 @@ build/
 .DS_Store
 .idea/
 .vscode/
+
+# Local secrets (API keys for building api vector packs).
+.env

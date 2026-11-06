@@ -433,6 +433,22 @@ float32 model the app agrees to a cosine above 0.9999; int8 kernels differ betwe
 ONNX Runtime builds and CPUs (about 0.998 for e5-small, 0.975 for bge-m3, as far as the
 float32 model is from its int8 version), which leaves the evaluation scores unchanged.
 
+**API vector packs** (`backend = "api"`, no model pack) are embedded with the
+provider's API and the maintainers' key, sent exactly as the app sends queries
+(`pipeline/api_embedding.py`, mirroring `embed/api.rs`: model, output dimension,
+prefixes, task type, batches of 96, normalized). Only Gemini is built so far; the
+key comes from `GEMINI_API_KEY` (or `GEMINI_API`), for example from a `.env` file
+that git ignores:
+
+```sh
+set -a && . ./.env && set +a
+uv run siyak-data build-embeddings --pack vectors.gemini-embedding-2
+uv run siyak-data eval-embeddings --pack vectors.gemini-embedding-2   # queries go to the API too
+```
+
+Batches are cached under `.cache/embeddings/api/` as they arrive, so a build that
+stops (rate limits are retried with a growing wait) resumes without paying twice.
+
 **Evaluation set.** `data/eval/semantic.toml` lists Turkish, English and Arabic
 queries with the verses a good result list should contain, and cross-references
 (a verse and related verses elsewhere). `eval-embeddings` reports hit@10,

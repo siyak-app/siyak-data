@@ -212,15 +212,18 @@ def run_eval(models: list[str], variants: list[str], out: Path) -> str:
 
 
 def run_pack_eval(sources: list[Source], pack_ids: list[str], dist: Path, out: Path) -> str:
-    """Evaluate built vector packs as the app uses them (ONNX model, stored vectors)."""
+    """Evaluate built vector packs as the app uses them: stored verse vectors, queries
+    embedded by the ONNX model pack (``local``) or the provider's API (``api``)."""
     import sqlite3  # noqa: PLC0415
     import tempfile  # noqa: PLC0415
     from contextlib import closing  # noqa: PLC0415
 
     import numpy as np  # noqa: PLC0415
 
+    from pipeline.api_embedding import encoder_for  # noqa: PLC0415
     from pipeline.build_embeddings import (  # noqa: PLC0415
         OnnxEncoder,
+        api_vector_settings,
         model_spec,
         unpack_model,
         vector_settings,
@@ -244,20 +247,25 @@ def run_pack_eval(sources: list[Source], pack_ids: list[str], dist: Path, out: P
         source = by_id.get(pack_id)
         if source is None or require_pack(source).type != "vectors":
             raise PipelineError(f"{pack_id}: not a vector pack")
-        model_source, text = vector_settings(source, models)
-        model_id = require_pack(model_source).id
-        spec = model_spec(model_source)
         with closing(sqlite3.connect(dist / f"{pack_id}.sqlite")) as conn:
             blobs = [r[0] for r in conn.execute("SELECT embedding FROM vectors ORDER BY verse_id")]
         passages = np.stack([np.frombuffer(b, dtype="<f4") for b in blobs]).astype(np.float32)
-        with tempfile.TemporaryDirectory(prefix="siyak-eval-") as tmp:
-            encoder = OnnxEncoder(unpack_model(dist / f"{model_id}.tar.zst", Path(tmp)), spec)
-            queries = encoder.encode([i.text for i in items if i.source is None], spec.query_prefix)
+        query_texts = [i.text for i in items if i.source is None]
+        files = [f"{pack_id}.sqlite.zst"]
+        if require_pack(source).meta.get("backend") == "api":
+            api, text = api_vector_settings(source)
+            model_id = f"{api.embedding_model} (API)"
+            queries = encoder_for(api).encode(query_texts, "query")
+        else:
+            model_source, text = vector_settings(source, models)
+            model_id = require_pack(model_source).id
+            spec = model_spec(model_source)
+            with tempfile.TemporaryDirectory(prefix="siyak-eval-") as tmp:
+                encoder = OnnxEncoder(unpack_model(dist / f"{model_id}.tar.zst", Path(tmp)), spec)
+                queries = encoder.encode(query_texts, spec.query_prefix)
+            files.append(f"{model_id}.tar.zst")
         result = evaluate(items, passages, queries, refs)
-        size = sum(
-            (dist / name).stat().st_size
-            for name in (f"{pack_id}.sqlite.zst", f"{model_id}.tar.zst")
-        )
+        size = sum((dist / name).stat().st_size for name in files)
         cells = [f"{h:.2f} / {r:.2f} / {m:.2f}" for h, r, m, _ in (result[g] for g in groups)]
         lines.append(
             f"| {pack_id} | {model_id} | {text} | {size / 1e6:.0f} MB | " + " | ".join(cells) + " |"

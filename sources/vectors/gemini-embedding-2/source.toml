@@ -1,0 +1,57 @@
+# Verse vectors of Google's gemini-embedding-2, built with the Gemini API (app spec §7.4,
+# ADR 0012 in the app). An api pack: no model pack; the app embeds queries with the user's
+# Gemini key. Building needs GEMINI_API_KEY (or GEMINI_API). See docs/pack-format.md §4.6.
+
+[source]
+id = "vectors.gemini-embedding-2"
+name = "Verse vectors, gemini-embedding-2"
+homepage = "https://ai.google.dev/gemini-api/docs/embeddings"
+license = "Derived from the texts below with the Gemini API"
+attribution = "Computed by siyak-data from the Tanzil Quran text and translations with the Gemini API"
+notes = """
+Each verse is embedded as one text, as in the local packs: Tanzil's Simple Clean Arabic,
+the Diyanet Vakfı Turkish translation (tr.vakfi) and Pickthall's English translation
+(en.pickthall), one per line. gemini-embedding-2 takes no task type: queries and verses
+get the task prefixes Google recommends for search (title: none, no verse titles).
+Vectors are shortened to 1024 values (outputDimensionality), which the API normalizes.
+"""
+
+[build]
+text = "ar+tr+en"
+
+[pack]
+id = "vectors.gemini-embedding-2"
+type = "vectors"
+lang = "mul"
+title = { tr = "Anlamına göre arama (Gemini API)", en = "Semantic search (Gemini API)" }
+author = "Siyak contributors"
+version = "1.0.0"
+min_app_version = "0.1.0"
+license = "Non-commercial use (Tanzil terms: the vectors are computed from Tanzil translations)"
+attribution = "Computed with the Gemini API from the Tanzil Quran text (CC BY 3.0) and the Tanzil translations tr.vakfi and en.pickthall (https://tanzil.net)"
+requires = []
+publish = false
+
+[pack.license_terms]
+tr = [
+  "Bu paketle yaptığınız aramalar, sizin Gemini API anahtarınızla Google'a gönderilir.",
+  "Vektörler Tanzil'in Arapça metninden ve Tanzil çevirilerinden (Diyanet Vakfı, Pickthall) Gemini API ile hesaplanmıştır.",
+  "Tanzil çevirileri yalnızca ticari olmayan kullanım için sunar.",
+]
+en = [
+  "Searches with this pack are sent to Google with your Gemini API key.",
+  "The vectors are computed with the Gemini API from Tanzil's Arabic text and Tanzil translations (Diyanet Vakfı, Pickthall).",
+  "Tanzil provides its translations for non-commercial use only.",
+]
+
+[pack.meta]
+embedding_model = "gemini/gemini-embedding-2"
+dim = 1024
+normalized = true
+source_text = "Arabic (Tanzil Simple Clean), Turkish (Diyanet Vakfı) and English (Pickthall), one text per verse"
+backend = "api"
+provider = "gemini"
+api_model = "gemini-embedding-2"
+api_dimensions = 1024
+query_prefix = "task: search result | query: "
+passage_prefix = "title: none | text: "
