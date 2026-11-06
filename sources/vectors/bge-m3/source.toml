@@ -1,5 +1,6 @@
 # Verse vectors of BGE-M3 (app spec §7.4, §18 questions 1–2). Built from the model pack
-# and the verse texts below; no file of its own. See docs/pack-format.md §4.5.
+# and the verse texts below; a release uses the vectors pinned with export-vectors and
+# checks them against its model pack. See docs/pack-format.md §4.7, §4.9.
 
 [source]
 id = "vectors.bge-m3"
@@ -28,7 +29,7 @@ min_app_version = "0.1.0"
 license = "Non-commercial use (Tanzil terms: the vectors are computed from Tanzil translations)"
 attribution = "Computed from the Tanzil Quran text (CC BY 3.0) and the Tanzil translations tr.vakfi and en.pickthall (https://tanzil.net)"
 requires = ["model.bge-m3"]
-publish = false
+publish = true
 
 [pack.license_terms]
 tr = [

@@ -79,6 +79,9 @@ To try packs in a debug build of the app before publishing them,
 
 Pushing a tag `data-YYYY.MM.N` runs `.github/workflows/data-release.yml`:
 fetch → build → validate → `SHA256SUMS` → manifest and pricing → GitHub release.
+Model packs are built in the release; vector packs come from verse vectors a
+maintainer computed once and pinned (`export-vectors`, the `vector-inputs`
+pre-release; docs/pack-format.md §4.9), so the release needs no API key.
 The app reads the manifest from `https://quran.kemalozyon.com/data/manifest.json`,
 with `https://github.com/siyak-app/siyak-data/releases/latest/download/manifest.json`
 as fallback.

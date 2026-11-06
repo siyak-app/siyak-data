@@ -5,7 +5,15 @@ from typing import Any
 
 import pytest
 
-from pipeline.api_embedding import BATCH, ApiEncoder, api_key, api_spec, retry_delay
+from pipeline.api_embedding import (
+    BATCH,
+    ApiEncoder,
+    Limiter,
+    RateLimit,
+    api_key,
+    api_spec,
+    retry_delay,
+)
 from pipeline.build_embeddings import api_vector_settings
 from pipeline.errors import PipelineError
 from pipeline.paths import repo_root
@@ -130,7 +138,8 @@ def test_the_gemini_pack_is_declared_as_the_app_reads_it() -> None:
     assert spec.dim == 1024
     assert source.pack is not None
     assert source.pack.requires == ()
-    assert not source.pack.publish
+    assert source.pack.publish
+    assert source.pack.terms_ack
 
 
 def quota_error(delay: str | None, message: str = "Quota exceeded") -> dict[str, Any]:
@@ -165,3 +174,140 @@ def test_a_spent_quota_stops_at_once_and_says_how_far_it_got(tmp_path: Path) -> 
         encoder.encode(texts, "passage", tmp_path)
     assert waits == [], "an hour-long wait is not waited for"
     assert (tmp_path / "00000.npy").exists()
+
+
+VOYAGE: dict[str, Any] = {
+    **META,
+    "embedding_model": "voyage/voyage-4-large",
+    "provider": "voyage",
+    "api_model": "voyage-4-large",
+    "query_prefix": "",
+    "passage_prefix": "",
+}
+
+
+class FakeVoyage:
+    """Answers /embeddings out of order, with a token count of one per byte."""
+
+    def __init__(self) -> None:
+        self.calls: list[tuple[str, dict[str, str], dict[str, Any]]] = []
+
+    def __call__(self, url: str, headers: dict[str, str], body: dict[str, Any]) -> tuple[int, Any]:
+        self.calls.append((url, headers, body))
+        data = [
+            {"index": i, "embedding": [3.0 if j == i % 4 else 0.0 for j in range(4)]}
+            for i in range(len(body["input"]))
+        ]
+        tokens = sum(len(t.encode()) for t in body["input"])
+        return 200, {"data": data[::-1], "usage": {"total_tokens": tokens}}
+
+
+def test_voyage_requests_match_the_app() -> None:
+    np = pytest.importorskip("numpy")
+    fake = FakeVoyage()
+    encoder = ApiEncoder(api_spec(VOYAGE, "x"), "pa-test", post=fake)
+    vectors = encoder.encode(["a", "b"], "query")
+    url, headers, body = fake.calls[0]
+    assert url == "https://api.voyageai.com/v1/embeddings"
+    assert headers == {"Authorization": "Bearer pa-test"}
+    assert body == {
+        "model": "voyage-4-large",
+        "input": ["a", "b"],
+        "input_type": "query",
+        "output_dimension": 4,
+    }
+    assert np.allclose(vectors, [[1, 0, 0, 0], [0, 1, 0, 0]]), "rows follow index, unit length"
+    encoder.encode(["p"], "passage")
+    assert fake.calls[1][2]["input_type"] == "document"
+    with pytest.raises(PipelineError, match="task_type is only for gemini"):
+        api_spec({**VOYAGE, "task_type": True}, "x")
+
+
+def test_voyage_errors_are_reported() -> None:
+    def rejected(_url: str, _headers: dict[str, str], _body: dict[str, Any]) -> tuple[int, Any]:
+        return 401, {"detail": "Provided API key is invalid."}
+
+    with pytest.raises(PipelineError, match="HTTP 401: Provided API key is invalid"):
+        ApiEncoder(api_spec(VOYAGE, "x"), "k", post=rejected).encode(["a"], "query")
+
+
+class Clock:
+    def __init__(self) -> None:
+        self.now = 0.0
+        self.waits: list[float] = []
+
+    def __call__(self) -> float:
+        return self.now
+
+    def sleep(self, seconds: float) -> None:
+        self.waits.append(seconds)
+        self.now += seconds
+
+
+def test_requests_are_split_and_paced_to_the_rate_limit() -> None:
+    pytest.importorskip("numpy")
+    clock = Clock()
+    fake = FakeVoyage()
+    encoder = ApiEncoder(
+        api_spec(VOYAGE, "x"),
+        "k",
+        post=fake,
+        limit=RateLimit(rpm=2, tpm=40),
+        clock=clock,
+        sleep=clock.sleep,
+    )
+    texts = ["x" * 10] * 8  # 10 tokens each; 20 tokens per request at most (tpm / rpm)
+    assert encoder.encode(texts, "passage").shape == (8, 4)
+    # The first part trusts the cautious estimate (5 tokens a text); the first answer
+    # teaches the real size, after which one text (11 tokens with the margin) fits.
+    assert [len(c[2]["input"]) for c in fake.calls] == [4, 1, 1, 1, 1]
+    assert clock.waits, "the limits made the build wait"
+    assert clock.now >= 60, "the 3rd request waited for the 1st to leave the minute"
+
+
+def test_the_limiter_keeps_requests_and_tokens_per_minute() -> None:
+    clock = Clock()
+    limiter = Limiter(RateLimit(rpm=3, tpm=100), clock, clock.sleep)
+    for tokens in (30, 30, 30):
+        limiter.wait(tokens)
+        limiter.record(tokens)
+    assert clock.waits == []
+    limiter.wait(10)  # a 4th request in the same minute
+    assert clock.now >= 60
+    limiter.record(10)
+    limiter.wait(95)  # 30 + 30 + 10 still in the window: waits for the tokens too
+    assert clock.now >= 60.5 + 60 - 0.5
+    assert RateLimit(rpm=3, tpm=10_000).request_tokens() == pytest.approx(3333.33, abs=0.01)
+    assert RateLimit().request_tokens() == float("inf")
+
+
+def test_network_failures_are_retried() -> None:
+    pytest.importorskip("numpy")
+    waits: list[float] = []
+    fake = FakeVoyage()
+    answers = iter([(0, {"detail": "network error: ConnectError"})])
+
+    def post(url: str, headers: dict[str, str], body: dict[str, Any]) -> tuple[int, Any]:
+        return next(answers, None) or fake(url, headers, body)
+
+    encoder = ApiEncoder(api_spec(VOYAGE, "x"), "k", post=post, sleep=waits.append)
+    assert encoder.encode(["a"], "query").shape == (1, 4)
+    assert waits == [2.0]
+
+    def down(_url: str, _headers: dict[str, str], _body: dict[str, Any]) -> tuple[int, Any]:
+        return 0, {"detail": "network error: ReadTimeout"}
+
+    with pytest.raises(PipelineError, match="HTTP 0: network error: ReadTimeout"):
+        ApiEncoder(api_spec(VOYAGE, "x"), "k", post=down, sleep=waits.append).encode(["a"], "query")
+
+
+def test_the_voyage_pack_is_declared_as_the_app_reads_it() -> None:
+    source = load_source(repo_root() / "sources" / "vectors" / "voyage-4-large" / "source.toml")
+    spec, text = api_vector_settings(source)
+    assert (spec.provider, spec.model, spec.dim, text) == (
+        "voyage",
+        "voyage-4-large",
+        1024,
+        "ar+tr+en",
+    )
+    assert (spec.query_prefix, spec.passage_prefix, spec.task_type) == ("", "", False)

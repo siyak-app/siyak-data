@@ -413,12 +413,15 @@ vectors (pooled by `pooling`) or one vector per text.
 
 ### 4.9 Building and evaluating
 
-The ML libraries are an optional dependency group:
+The ML libraries are optional dependency groups: `vectors` (NumPy, ONNX, ONNX
+Runtime, tokenizers) builds the packs and is what a release installs; `embed`
+adds sentence-transformers (PyTorch) for comparing candidate models.
 
 ```sh
 uv sync --group embed
 uv run siyak-data fetch --source model.e5-small
 uv run siyak-data build-embeddings            # every model pack, then every vector pack
+uv run siyak-data build-embeddings --published   # only publish = true packs (the release)
 uv run siyak-data eval-embeddings             # compare models and texts (PyTorch)
 uv run siyak-data eval-embeddings --pack vectors.e5-small   # a built pack, as the app runs it
 ```
@@ -436,18 +439,44 @@ float32 model is from its int8 version), which leaves the evaluation scores unch
 **API vector packs** (`backend = "api"`, no model pack) are embedded with the
 provider's API and the maintainers' key, sent exactly as the app sends queries
 (`pipeline/api_embedding.py`, mirroring `embed/api.rs`: model, output dimension,
-prefixes, task type, batches of 96, normalized). Only Gemini is built so far; the
-key comes from `GEMINI_API_KEY` (or `GEMINI_API`), for example from a `.env` file
-that git ignores:
+prefixes, Gemini's task type, Voyage's `input_type`, normalized). Gemini and Voyage
+are built here; the key comes from `GEMINI_API_KEY` (or `GEMINI_API`) or
+`VOYAGE_API_KEY` (or `VOYAGE_API`), for example from a `.env` file that git ignores:
 
 ```sh
 set -a && . ./.env && set +a
 uv run siyak-data build-embeddings --pack vectors.gemini-embedding-2
+uv run siyak-data build-embeddings --pack vectors.voyage-4-large --api-rpm 3 --api-tpm 10000
 uv run siyak-data eval-embeddings --pack vectors.gemini-embedding-2   # queries go to the API too
 ```
 
-Batches are cached under `.cache/embeddings/api/` as they arrive, so a build that
-stops (rate limits are retried with a growing wait) resumes without paying twice.
+Batches of 96 texts are cached under `.cache/embeddings/api/` as they arrive, so a
+build that stops resumes without paying twice. Rate limits (429) and server errors are
+retried with a growing wait, or after the delay Gemini asks for; a spent daily quota
+stops the build at once with how far it got. `--api-rpm`/`--api-tpm` keep an account's
+per-minute limits (a Voyage account without a payment method allows only a few
+requests and about 10,000 tokens a minute): requests are split to at most tpm/rpm
+tokens, by an estimate the provider's token counts correct, and paced over a sliding
+minute. The free Gemini tier allows about 1,000 texts a day, so its pack takes a week
+of daily runs.
+
+**Pinned verse vectors.** A release does not embed the verses again: no API key or
+quota in CI, and no 40-minute BGE-M3 run. A maintainer builds the pack once, then
+
+```sh
+uv run siyak-data export-vectors            # the published vector packs, or --pack ID
+gh release upload vector-inputs dist/inputs/*.npy
+```
+
+writes each pack's vectors to `dist/inputs/<id>-<version>.npy` (and into the fetch
+cache) and prints the `[[files]]` entry, `name = "vectors.npy"`, to pin in the pack's
+`source.toml`; the file lives in the `vector-inputs` pre-release of this repository.
+With it, `fetch` downloads the file, and `build-embeddings` checks its sha256, that its
+name has the pack's current version (a new version needs new vectors) and that it holds
+one unit vector per verse, then writes the pack from it. For a local pack the release
+also embeds the first 32 verses with the model pack it has just built and requires a
+cosine of at least 0.999 to the pinned vectors, so the vectors stay in the model's
+space. `validate` requires a published `api` pack to be pinned this way.
 
 **Evaluation set.** `data/eval/semantic.toml` lists Turkish, English and Arabic
 queries with the verses a good result list should contain, and cross-references
@@ -458,9 +487,10 @@ recall@10 and MRR@10 per language to `dist/reports/embedding-eval.md`
 **Models.** `model.bge-m3` and `vectors.bge-m3` are the app's default local packs
 (app ADR 0012: overall 0.81 / 0.51 / 0.67, Turkish 0.90 / 0.56 / 0.79; about
 420 MB to download). Building the vectors takes about 40 minutes on an Apple
-M-series CPU. `model.e5-small` and `vectors.e5-small` (87 MB, clearly weaker)
-are kept as small packs for development and tests. Both pairs are
-`publish = false` until the release workflow builds them.
+M-series CPU, which is why their vectors are pinned. `vectors.gemini-embedding-2` and
+`vectors.voyage-4-large` (1024 values each) are the published `api` packs.
+`model.e5-small` and `vectors.e5-small` (87 MB, clearly weaker) are kept as small
+packs for development and tests (`publish = false`).
 
 ## 5. Versions
 
@@ -521,6 +551,10 @@ files and each `source.toml` `[pack]` table. Shape (spec §6.3):
   pack, §4.7).
 - `url` points at the immutable release asset of the release tag
   (`SIYAK_DATA_TAG`).
+- `terms_ack: true` (from `[pack] terms_ack = true`, which needs
+  `[pack.license_terms]`): the app installs the pack only after the user accepts its
+  terms (spec §6.5). Every published `api` vector pack sets it, since its searches are
+  sent to the provider; the key is left out otherwise.
 - **`publish = false`** packs are built and validated but never written to the
   manifest (e.g. `ar.qurtubi` until permission is granted).
 - A source with `[build] optional = true` is skipped by `fetch`, `build` and
@@ -530,8 +564,9 @@ files and each `source.toml` `[pack]` table. Shape (spec §6.3):
   its directory holds `PERMISSION.md` with the rights holder's reply: `manifest`
   refuses it and `validate` fails (spec §6.6, al-Qurtubi).
 - **Bundles** come from `manifest.template.json`. Members that are not in the
-  release are dropped (with a warning); an empty bundle is omitted. Vector and
-  model packs are added to `recommended` in M7.
+  release are dropped (with a warning); an empty bundle is omitted. `recommended`
+  holds `vectors.bge-m3` and `model.bge-m3`; `api` packs are never in a bundle, they
+  need the user's own key.
 
 ## 7. Feature keys (morphology)
 

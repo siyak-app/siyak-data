@@ -7,10 +7,10 @@
       "id": "recommended",
       "title": { "tr": "Önerilen paketler", "en": "Recommended packs" },
       "description": {
-        "tr": "Kök analizi ve bir tefsir",
-        "en": "Root analysis and a tafsir"
+        "tr": "Kök analizi, bir tefsir ve anlamına göre arama",
+        "en": "Root analysis, a tafsir and semantic search"
       },
-      "packs": ["morphology.qac", "ar.jalalayn"]
+      "packs": ["morphology.qac", "ar.jalalayn", "vectors.bge-m3", "model.bge-m3"]
     }
   ]
 }

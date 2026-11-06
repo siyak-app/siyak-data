@@ -45,7 +45,8 @@ def test_manifest_shape(built_fixtures: Path, fixture_sources: None) -> None:
     assert [(b["id"], b["packs"]) for b in manifest["bundles"]] == [
         ("recommended", ["morphology.qac", "ar.jalalayn"])
     ]
-    assert not warnings
+    # The fixtures build no embeddings: the bundle's semantic search packs are dropped.
+    assert warnings == ["bundle 'recommended': not in this release: vectors.bge-m3, model.bge-m3"]
 
 
 def test_unpublished_pack_is_left_out(built_fixtures: Path, fixture_sources: None) -> None:

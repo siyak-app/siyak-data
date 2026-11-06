@@ -1505,6 +1505,13 @@ embed = [
     { name = "onnx" },
     { name = "onnxruntime" },
     { name = "sentence-transformers" },
+    { name = "tokenizers" },
+]
+vectors = [
+    { name = "numpy" },
+    { name = "onnx" },
+    { name = "onnxruntime" },
+    { name = "tokenizers" },
 ]
 
 [package.metadata]
@@ -1524,6 +1531,13 @@ embed = [
     { name = "onnx", specifier = ">=1.23.2" },
     { name = "onnxruntime", specifier = ">=1.31.1" },
     { name = "sentence-transformers", specifier = ">=6.2.0" },
+    { name = "tokenizers", specifier = ">=0.23.3" },
+]
+vectors = [
+    { name = "numpy", specifier = ">=2.5.4" },
+    { name = "onnx", specifier = ">=1.23.2" },
+    { name = "onnxruntime", specifier = ">=1.31.1" },
+    { name = "tokenizers", specifier = ">=0.23.3" },
 ]
 
 [[package]]

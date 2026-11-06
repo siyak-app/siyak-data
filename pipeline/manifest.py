@@ -90,6 +90,8 @@ def pack_entry(source: Source, path: Path, url: str) -> dict[str, Any]:
         entry["meta"] = pack.meta
     if pack.requires:
         entry["requires"] = list(pack.requires)
+    if pack.terms_ack:
+        entry["terms_ack"] = True
     return entry
 
 

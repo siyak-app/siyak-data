@@ -244,6 +244,16 @@ def check_sources(sources: list[Source], report: Report) -> None:
                 source.terms is None or pack.license_terms is not None,
                 f"{source.path}: source has terms of use, so [pack.license_terms] is required",
             )
+            if pack.type == "vectors" and pack.meta.get("backend") == "api":
+                report.check(
+                    pack.terms_ack,
+                    f"{source.path}: searches go to the provider, so terms_ack = true is required",
+                )
+                report.check(
+                    any(f.name == "vectors.npy" for f in source.files),
+                    f"{source.path}: an api pack is published from pinned vectors "
+                    "(export-vectors), a release has no key",
+                )
 
 
 def check_vectors(report: Report) -> None:

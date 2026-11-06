@@ -68,6 +68,9 @@ class PackMeta:
     bundled: bool = False
     #: Ids of packs this pack needs (a local vector pack needs its model pack).
     requires: tuple[str, ...] = ()
+    #: The app asks the user to accept ``license_terms`` before installing (spec §6.5),
+    #: e.g. an api vector pack, whose searches go to the provider.
+    terms_ack: bool = False
 
 
 @dataclass(frozen=True)
@@ -149,6 +152,11 @@ def _parse_pack(raw: dict[str, Any], where: str) -> PackMeta:
     terms = raw.get("license_terms")
     if terms is not None and (not isinstance(terms, dict) or set(terms) != {"tr", "en"}):
         raise PipelineError(f"{where}: license_terms must have exactly 'tr' and 'en' lists")
+    terms_ack = raw.get("terms_ack", False)
+    if not isinstance(terms_ack, bool):
+        raise PipelineError(f"{where}: terms_ack must be true or false")
+    if terms_ack and terms is None:
+        raise PipelineError(f"{where}: terms_ack needs [pack.license_terms] to accept")
     return PackMeta(
         id=_str(raw, "id", where),
         type=pack_type,
@@ -166,6 +174,7 @@ def _parse_pack(raw: dict[str, Any], where: str) -> PackMeta:
         description=raw.get("description"),
         bundled=bool(raw.get("bundled", False)),
         requires=tuple(str(r) for r in raw.get("requires", [])),
+        terms_ack=terms_ack,
     )
 
 

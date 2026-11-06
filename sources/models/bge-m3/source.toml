@@ -1,5 +1,5 @@
 # BGE-M3, a local embedding model of semantic search (app spec §7.4, ADR 0012 in the app).
-# See docs/pack-format.md §4.6.
+# See docs/pack-format.md §4.8.
 
 [source]
 id = "model.bge-m3"
@@ -61,7 +61,7 @@ version = "1.0.0"
 min_app_version = "0.1.0"
 license = "MIT"
 attribution = "Model: BGE-M3 (https://huggingface.co/BAAI/bge-m3)"
-publish = false
+publish = true
 
 [pack.citation]
 title = "M3-Embedding: Multi-Linguality, Multi-Functionality, Multi-Granularity Text Embeddings Through Self-Knowledge Distillation"

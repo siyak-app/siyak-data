@@ -20,6 +20,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+from pipeline.api_embedding import RateLimit, encoder_for
 from pipeline.embedding import VARIANTS, ModelSpec, get_model, verse_refs, verse_texts
 from pipeline.errors import PipelineError
 from pipeline.paths import cache_dir, data_dir
@@ -211,7 +212,14 @@ def run_eval(models: list[str], variants: list[str], out: Path) -> str:
     return report
 
 
-def run_pack_eval(sources: list[Source], pack_ids: list[str], dist: Path, out: Path) -> str:
+def run_pack_eval(
+    sources: list[Source],
+    pack_ids: list[str],
+    dist: Path,
+    out: Path,
+    *,
+    limit: RateLimit | None = None,
+) -> str:
     """Evaluate built vector packs as the app uses them: stored verse vectors, queries
     embedded by the ONNX model pack (``local``) or the provider's API (``api``)."""
     import sqlite3  # noqa: PLC0415
@@ -220,7 +228,6 @@ def run_pack_eval(sources: list[Source], pack_ids: list[str], dist: Path, out: P
 
     import numpy as np  # noqa: PLC0415
 
-    from pipeline.api_embedding import encoder_for  # noqa: PLC0415
     from pipeline.build_embeddings import (  # noqa: PLC0415
         OnnxEncoder,
         api_vector_settings,
@@ -255,7 +262,7 @@ def run_pack_eval(sources: list[Source], pack_ids: list[str], dist: Path, out: P
         if require_pack(source).meta.get("backend") == "api":
             api, text = api_vector_settings(source)
             model_id = f"{api.embedding_model} (API)"
-            queries = encoder_for(api).encode(query_texts, "query")
+            queries = encoder_for(api, limit).encode(query_texts, "query")
         else:
             model_source, text = vector_settings(source, models)
             model_id = require_pack(model_source).id

@@ -21,10 +21,16 @@ dev = [
   "pytest>=9.1.1,<9.2",
   "ruff>=0.17.1,<0.18",
 ]
-embed = [
+# Building the model and vector packs (build-embeddings, export-vectors; the release).
+vectors = [
     "numpy>=2.5.4",
     "onnx>=1.23.2",
     "onnxruntime>=1.31.1",
+    "tokenizers>=0.23.3",
+]
+# Also comparing candidate models (eval-embeddings).
+embed = [
+    { include-group = "vectors" },
     "sentence-transformers>=6.2.0",
 ]
 

@@ -1,5 +1,5 @@
 # multilingual-e5-small, the local embedding model of semantic search (app spec §7.4,
-# ADR 0012 in the app). See docs/pack-format.md §4.6.
+# ADR 0012 in the app). See docs/pack-format.md §4.8.
 
 [source]
 id = "model.e5-small"

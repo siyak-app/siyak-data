@@ -1,5 +1,5 @@
 # Verse vectors of multilingual-e5-small (app spec §7.4, §18 questions 1–2). Built from
-# the model pack and the verse texts below; no file of its own. See docs/pack-format.md §4.5.
+# the model pack and the verse texts below; no file of its own. See docs/pack-format.md §4.7.
 
 [source]
 id = "vectors.e5-small"

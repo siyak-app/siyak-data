@@ -1,4 +1,4 @@
-"""Model packs and vector packs (docs/pack-format.md §4.5, §4.6; app spec §6.1, §7.4).
+"""Model packs and vector packs (docs/pack-format.md §4.7-§4.9; app spec §6.1, §7.4).
 
 ``uv run --group embed siyak-data build-embeddings`` builds, for every ``[pack]`` of type
 ``model`` and ``vectors``:
@@ -30,7 +30,7 @@ from contextlib import closing
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from pipeline.api_embedding import ApiSpec, api_spec, encoder_for, passage_cache
+from pipeline.api_embedding import ApiSpec, RateLimit, api_spec, encoder_for, passage_cache
 from pipeline.archive import build_archive, extract_archive
 from pipeline.build_translation import require_pack, source_version
 from pipeline.compress import MAX_PACK_SIZE, compress_pack
@@ -56,6 +56,15 @@ LICENSE_MEMBER = "model/LICENSE"
 BATCH = 16
 #: A unit vector's length may differ from 1 by this much (the app checks the same).
 NORM_TOLERANCE = 1e-3
+#: The source file holding a vector pack's verse vectors, computed once by a maintainer
+#: (``export-vectors``) and pinned, so a release does not embed again (pack-format §4.9).
+PREBUILT = "vectors.npy"
+#: The siyak-data release whose assets are the pinned vectors.
+VECTOR_INPUTS_TAG = "vector-inputs"
+#: Verses a release embeds again with its own model pack to check pinned local vectors.
+CHECK_VERSES = 32
+#: Least cosine similarity between pinned and re-embedded vectors.
+MIN_AGREEMENT = 0.999
 
 VECTORS_DDL = """
 CREATE TABLE vectors (
@@ -276,18 +285,27 @@ def api_vector_settings(source: Source) -> tuple[ApiSpec, str]:
 
 
 def build_vector_pack(
-    source: Source, models: dict[str, Source], out_dir: Path, *, built_at: str
+    source: Source,
+    models: dict[str, Source],
+    out_dir: Path,
+    *,
+    built_at: str,
+    limit: RateLimit | None = None,
 ) -> list[Path]:
     """Build ``<id>.sqlite`` and ``<id>.sqlite.zst``: from the built model pack (``local``)
     or with the provider's API (``api``, key from the environment)."""
     pack = require_pack(source)
     if pack.type != "vectors":
         raise PipelineError(f"{source.path}: pack type is '{pack.type}', not 'vectors'")
+    pinned = load_prebuilt(source)
     if pack.meta.get("backend") == "api":
         api, text = api_vector_settings(source)
-        vectors = encoder_for(api).encode(
-            verse_texts(text), "passage", cache=passage_cache(api, text)
-        )
+        if pinned is None:
+            vectors = encoder_for(api, limit).encode(
+                verse_texts(text), "passage", cache=passage_cache(api, text)
+            )
+        else:
+            vectors = pinned
         check_matrix(vectors, api.dim, str(source.path))
         inputs = [f"{api.embedding_model} ({api.dim})", f"text {text}"]
     else:
@@ -296,9 +314,15 @@ def build_vector_pack(
         archive = out_dir / f"{require_pack(model_source).id}.tar.zst"
         if not archive.exists():
             raise PipelineError(f"{archive}: build the model pack first")
+        texts = verse_texts(text)
         with tempfile.TemporaryDirectory(prefix="siyak-vectors-") as tmp:
             encoder = OnnxEncoder(unpack_model(archive, Path(tmp)), spec)
-            vectors = encoder.encode(verse_texts(text), spec.passage_prefix)
+            if pinned is None:
+                vectors = encoder.encode(texts, spec.passage_prefix)
+            else:
+                vectors = pinned
+                again = encoder.encode(texts[:CHECK_VERSES], spec.passage_prefix)
+                check_agreement(vectors[:CHECK_VERSES], again, str(source.path))
         check_matrix(vectors, spec.dim, str(source.path))
         model_pack = require_pack(model_source)
         inputs = [f"{model_pack.id}@{model_pack.version}", f"text {text}"]
@@ -329,6 +353,69 @@ def check_matrix(vectors: Matrix, dim: int, where: str) -> None:
     norms = np.linalg.norm(vectors, axis=1)
     if not np.all(np.abs(norms - 1) <= NORM_TOLERANCE):
         raise PipelineError(f"{where}: vectors are not unit length")
+
+
+def prebuilt_name(source: Source) -> str:
+    """File name of a vector pack's pinned vectors: its id and version."""
+    pack = require_pack(source)
+    return f"{pack.id}-{pack.version}.npy"
+
+
+def load_prebuilt(source: Source) -> Matrix | None:
+    """The pinned verse vectors of ``source`` (``[[files]] name = "vectors.npy"``), or
+    None when it has none. They must be fetched and belong to this pack version."""
+    import numpy as np  # noqa: PLC0415
+
+    if not any(f.name == PREBUILT for f in source.files):
+        return None
+    f = source.file(PREBUILT)
+    expected = prebuilt_name(source)
+    if not f.url.endswith(f"/{expected}"):
+        raise PipelineError(
+            f"{source.path}: {PREBUILT} is for another pack version (want {expected}); "
+            "run export-vectors and pin the new file"
+        )
+    vectors: Matrix = np.load(verify_cached(source, PREBUILT), allow_pickle=False)
+    return vectors.astype(np.float32, copy=False)
+
+
+def check_agreement(pinned: Matrix, again: Matrix, where: str) -> None:
+    """Pinned local vectors must be what this release's model pack computes."""
+    import numpy as np  # noqa: PLC0415
+
+    cosines = np.sum(pinned * again, axis=1)
+    worst = float(cosines.min()) if len(cosines) else 1.0
+    if worst < MIN_AGREEMENT:
+        raise PipelineError(
+            f"{where}: the pinned vectors differ from the model pack's (cosine {worst:.4f} < "
+            f"{MIN_AGREEMENT}); rebuild them and run export-vectors"
+        )
+
+
+def export_vectors(source: Source, dist: Path, dest: Path) -> tuple[Path, str]:
+    """Write the verse vectors of the built pack ``dist/<id>.sqlite`` to
+    ``dest/<id>-<version>.npy`` and into the fetch cache; return the file and its sha256."""
+    import numpy as np  # noqa: PLC0415
+
+    from pipeline.fetch import sha256_file  # noqa: PLC0415
+
+    pack = require_pack(source)
+    if pack.type != "vectors":
+        raise PipelineError(f"{pack.id}: not a vector pack")
+    db = dist / f"{pack.id}.sqlite"
+    if not db.exists():
+        raise PipelineError(f"{db}: build the vector pack first (build-embeddings)")
+    with closing(sqlite3.connect(db)) as conn:
+        blobs = [r[0] for r in conn.execute("SELECT embedding FROM vectors ORDER BY verse_id")]
+    vectors = np.stack([np.frombuffer(b, dtype="<f4") for b in blobs]).astype("<f4")
+    check_matrix(vectors, int(pack.meta.get("dim", 0)), str(db))
+    dest.mkdir(parents=True, exist_ok=True)
+    out = dest / prebuilt_name(source)
+    np.save(out, vectors, allow_pickle=False)
+    cached = source.cache_path(PREBUILT)
+    cached.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copyfile(out, cached)
+    return out, sha256_file(out)
 
 
 def check_vector_pack(path: Path, dim: int) -> list[str]:

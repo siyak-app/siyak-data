@@ -1,0 +1,56 @@
+# Verse vectors of Voyage AI's voyage-4-large, built with the Voyage API (app spec §7.4,
+# ADR 0012 in the app). An api pack: no model pack; the app embeds queries with the user's
+# Voyage key. Building needs VOYAGE_API_KEY (or VOYAGE_API). See docs/pack-format.md §4.7, §4.9.
+
+[source]
+id = "vectors.voyage-4-large"
+name = "Verse vectors, voyage-4-large"
+homepage = "https://docs.voyageai.com/docs/embeddings"
+license = "Derived from the texts below with the Voyage API"
+attribution = "Computed by siyak-data from the Tanzil Quran text and translations with the Voyage API"
+notes = """
+Each verse is embedded as one text, as in the local packs: Tanzil's Simple Clean Arabic,
+the Diyanet Vakfı Turkish translation (tr.vakfi) and Pickthall's English translation
+(en.pickthall), one per line. No prefixes: Voyage marks queries and verses with
+input_type (query, document). Vectors have 1024 values (output_dimension, the model's
+default), normalized here as in the app.
+"""
+
+[build]
+text = "ar+tr+en"
+
+[pack]
+id = "vectors.voyage-4-large"
+type = "vectors"
+lang = "mul"
+title = { tr = "Anlamına göre arama (Voyage API)", en = "Semantic search (Voyage API)" }
+author = "Siyak contributors"
+version = "1.0.0"
+min_app_version = "0.1.0"
+license = "Non-commercial use (Tanzil terms: the vectors are computed from Tanzil translations)"
+attribution = "Computed with the Voyage API from the Tanzil Quran text (CC BY 3.0) and the Tanzil translations tr.vakfi and en.pickthall (https://tanzil.net)"
+requires = []
+publish = true
+terms_ack = true
+
+[pack.license_terms]
+tr = [
+  "Bu paketle yaptığınız aramalar, sizin Voyage API anahtarınızla Voyage AI'a (MongoDB) gönderilir.",
+  "Vektörler Tanzil'in Arapça metninden ve Tanzil çevirilerinden (Diyanet Vakfı, Pickthall) Voyage API ile hesaplanmıştır.",
+  "Tanzil çevirileri yalnızca ticari olmayan kullanım için sunar.",
+]
+en = [
+  "Searches with this pack are sent to Voyage AI (MongoDB) with your Voyage API key.",
+  "The vectors are computed with the Voyage API from Tanzil's Arabic text and Tanzil translations (Diyanet Vakfı, Pickthall).",
+  "Tanzil provides its translations for non-commercial use only.",
+]
+
+[pack.meta]
+embedding_model = "voyage/voyage-4-large"
+dim = 1024
+normalized = true
+source_text = "Arabic (Tanzil Simple Clean), Turkish (Diyanet Vakfı) and English (Pickthall), one text per verse"
+backend = "api"
+provider = "voyage"
+api_model = "voyage-4-large"
+api_dimensions = 1024

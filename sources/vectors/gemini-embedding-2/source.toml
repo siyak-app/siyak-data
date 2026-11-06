@@ -1,6 +1,6 @@
 # Verse vectors of Google's gemini-embedding-2, built with the Gemini API (app spec §7.4,
 # ADR 0012 in the app). An api pack: no model pack; the app embeds queries with the user's
-# Gemini key. Building needs GEMINI_API_KEY (or GEMINI_API). See docs/pack-format.md §4.6.
+# Gemini key. Building needs GEMINI_API_KEY (or GEMINI_API). See docs/pack-format.md §4.7, §4.9.
 
 [source]
 id = "vectors.gemini-embedding-2"
@@ -30,7 +30,8 @@ min_app_version = "0.1.0"
 license = "Non-commercial use (Tanzil terms: the vectors are computed from Tanzil translations)"
 attribution = "Computed with the Gemini API from the Tanzil Quran text (CC BY 3.0) and the Tanzil translations tr.vakfi and en.pickthall (https://tanzil.net)"
 requires = []
-publish = false
+publish = true
+terms_ack = true
 
 [pack.license_terms]
 tr = [

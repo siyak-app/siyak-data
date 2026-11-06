@@ -23,14 +23,27 @@ jobs:
       - uses: astral-sh/setup-uv@v10.3.3
         with:
           enable-cache: true
-      - run: uv sync --locked
+      # The vectors group builds the model and vector packs (pack-format §4.6-4.7);
+      # it has no torch, which only the evaluation (embed group) needs.
+      - run: uv sync --locked --group vectors
       - run: uv run pytest
+      # Model files (BGE-M3 is 2.3 GB) and the pinned verse vectors, by their pins.
+      - uses: actions/cache@v6
+        with:
+          path: |
+            .cache/model.*
+            .cache/vectors.*
+          key: embedding-inputs-${{ hashFiles('sources/models/*/source.toml', 'sources/vectors/*/source.toml') }}
+          restore-keys: embedding-inputs-
       - run: uv run siyak-data fetch
       # Spec §6.6: ask Quranpedia's changes API (and the other upstreams) on every
       # release; the result goes into the release notes. Re-pinning stays manual.
       - name: Upstream changes since the pins
         run: uv run siyak-data check-updates | tee dist-check-updates.txt
       - run: uv run siyak-data build
+      # Published model packs are quantized here; vector packs come from their pinned
+      # vectors (no API key in CI), a local one checked against its model pack.
+      - run: uv run siyak-data build-embeddings --published
       - run: uv run siyak-data validate
       - run: uv run siyak-data manifest --tag "$GITHUB_REF_NAME"
       - name: Checksums
