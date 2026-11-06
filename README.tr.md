@@ -37,6 +37,19 @@ uv run siyak-data validate --profile fixtures
 
 `uv run siyak-data check-updates`, kaynakların güncel hâlini sabitlenmiş sürümle karşılaştırır.
 
+Anlamsal arama paketleri (bir embedding modeli ve ayet vektörleri) isteğe bağlı makine
+öğrenmesi kütüphanelerine ihtiyaç duyar ve ayrı bir komutla üretilir:
+
+```sh
+uv sync --group embed
+uv run siyak-data build-embeddings   # önce model paketleri, sonra vektör paketleri (ONNX Runtime)
+uv run siyak-data eval-embeddings    # modelleri ve ayet metinlerini data/eval/semantic.toml ile puanla
+```
+
+Paketleri yayımlamadan uygulamanın debug sürümünde denemek için
+`uv run siyak-data manifest --unpublished` derlenmiş tüm paketleri listeler; ardından uygulamayı
+`SIYAK_PACK_SOURCE=../siyak-data/dist` ile çalıştırın.
+
 ## Nasıl çalışır
 
 - **Kaynaklar sabitlenir.** Her kaynak `sources/<…>/source.toml` ile tanımlanır:

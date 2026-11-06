@@ -32,6 +32,8 @@ PACK_FILE = {
     "translation": "{id}.sqlite.zst",
     "tafsir": "{id}.sqlite.zst",
     "morphology": "{id}.tar.zst",
+    "vectors": "{id}.sqlite.zst",
+    "model": "{id}.tar.zst",
 }
 DEV_TAG = "data-dev"
 
@@ -86,14 +88,48 @@ def pack_entry(source: Source, path: Path, url: str) -> dict[str, Any]:
         entry["description"] = pack.description
     if pack.meta:
         entry["meta"] = pack.meta
+    if pack.requires:
+        entry["requires"] = list(pack.requires)
     return entry
 
 
+def _listed(source: Source, path: Path, unpublished: bool, warnings: list[str]) -> bool:
+    """Whether a pack goes into the manifest; raise if a published pack cannot."""
+    pack = require_pack(source)
+    if not pack.publish and not unpublished:
+        warnings.append(f"{pack.id}: publish = false, not in the manifest")
+        return False
+    if not path.exists():
+        if unpublished:  # local testing lists what is built
+            warnings.append(f"{pack.id}: not built, not in the manifest")
+            return False
+        raise PipelineError(f"{path}: not built; run 'siyak-data build'")
+    if not pack.publish:
+        warnings.append(f"{pack.id}: publish = false, listed for local testing only")
+        return True
+    problem = source.permission_problem()
+    if problem:
+        raise PipelineError(problem)
+    return True
+
+
 def build_manifest(
-    sources: list[Source], dist: Path, *, tag: str | None = None, template: Path | None = None
+    sources: list[Source],
+    dist: Path,
+    *,
+    tag: str | None = None,
+    template: Path | None = None,
+    unpublished: bool = False,
 ) -> tuple[dict[str, Any], list[str]]:
-    """Return the manifest and a list of warnings."""
+    """Return the manifest and a list of warnings.
+
+    ``unpublished`` lists every built pack, ``publish = false`` ones included, and skips
+    unbuilt ones, for trying packs in a debug build (``SIYAK_PACK_SOURCE``); it is refused
+    for a release tag.
+    """
     tag = tag or os.environ.get("SIYAK_DATA_TAG") or DEV_TAG
+    if unpublished and tag != DEV_TAG:
+        raise PipelineError("--unpublished is for local testing; it cannot be used with a tag")
     base = json.loads(
         (template or repo_root() / "manifest.template.json").read_text(encoding="utf-8")
     )
@@ -104,17 +140,10 @@ def build_manifest(
     for source in sorted(
         (s for s in sources if s.pack is not None), key=lambda s: require_pack(s).id
     ):
-        pack = require_pack(source)
-        if not pack.publish:
-            warnings.append(f"{pack.id}: publish = false, not in the manifest")
-            continue
-        problem = source.permission_problem()
-        if problem:
-            raise PipelineError(problem)
         name = pack_file_name(source)
         path = dist / name
-        if not path.exists():
-            raise PipelineError(f"{path}: not built; run 'siyak-data build'")
+        if not _listed(source, path, unpublished, warnings):
+            continue
         url = base["release_download_url"].format(tag=tag, file=name)
         packs.append(pack_entry(source, path, url))
     published = {p["id"] for p in packs}

@@ -38,6 +38,19 @@ uv run siyak-data validate --profile fixtures
 
 `uv run siyak-data check-updates` compares upstream sources with their pinned versions.
 
+Semantic search packs (an embedding model and its verse vectors) need the optional ML
+libraries and are built by a separate command:
+
+```sh
+uv sync --group embed
+uv run siyak-data build-embeddings   # model packs, then vector packs (ONNX Runtime)
+uv run siyak-data eval-embeddings    # score models and verse texts on data/eval/semantic.toml
+```
+
+To try packs in a debug build of the app before publishing them,
+`uv run siyak-data manifest --unpublished` lists every built pack, then run the app with
+`SIYAK_PACK_SOURCE=../siyak-data/dist`.
+
 ## How it works
 
 - **Sources are pinned.** Each source is described by `sources/<…>/source.toml`:

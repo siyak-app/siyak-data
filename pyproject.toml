@@ -21,6 +21,12 @@ dev = [
   "pytest>=9.1.1,<9.2",
   "ruff>=0.17.1,<0.18",
 ]
+embed = [
+    "numpy>=2.5.4",
+    "onnx>=1.23.2",
+    "onnxruntime>=1.31.1",
+    "sentence-transformers>=6.2.0",
+]
 
 [build-system]
 requires = ["hatchling"]
@@ -50,6 +56,12 @@ ignore = [
 strict = true
 python_version = "3.12"
 files = ["pipeline"]
+
+# The embedding modules import the optional `embed` group lazily; CI type-checks
+# without it, and onnxruntime ships no type information.
+[[tool.mypy.overrides]]
+module = ["numpy", "numpy.*", "onnxruntime", "onnxruntime.*", "sentence_transformers", "tokenizers", "torch"]
+ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

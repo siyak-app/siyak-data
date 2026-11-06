@@ -1,0 +1,65 @@
+# multilingual-e5-small, the local embedding model of semantic search (app spec §7.4,
+# ADR 0012 in the app). See docs/pack-format.md §4.6.
+
+[source]
+id = "model.e5-small"
+name = "multilingual-e5-small (intfloat), ONNX export from the model's repository"
+homepage = "https://huggingface.co/intfloat/multilingual-e5-small"
+license = "MIT"
+attribution = "Model: multilingual-e5-small, Liang Wang et al., Microsoft (https://huggingface.co/intfloat/multilingual-e5-small)"
+notes = """
+The ONNX file and tokenizer are the ones published in the model's repository, pinned
+by commit. The repository states license: mit but has no LICENSE file; the model comes
+from Microsoft's unilm project, whose LICENSE (MIT, Copyright (c) Microsoft Corporation)
+ships in the pack as model/LICENSE.
+"""
+
+[[files]]
+name = "model.onnx"
+url = "https://huggingface.co/intfloat/multilingual-e5-small/resolve/614241f622f53c4eeff9890bdc4f31cfecc418b3/onnx/model.onnx"
+version = "614241f6"
+sha256 = "ca456c06b3a9505ddfd9131408916dd79290368331e7d76bb621f1cba6bc8665"
+note = "float32 export (470 MB); quantized to int8 by the build."
+
+[[files]]
+name = "tokenizer.json"
+url = "https://huggingface.co/intfloat/multilingual-e5-small/resolve/614241f622f53c4eeff9890bdc4f31cfecc418b3/tokenizer.json"
+version = "614241f6"
+sha256 = "0b44a9d7b51c3c62626640cda0e2c2f70fdacdc25bbbd68038369d14ebdf4c39"
+
+[[files]]
+name = "LICENSE"
+url = "https://raw.githubusercontent.com/microsoft/unilm/31c5b904ca1bf2afb4c234a6675c683a4e5fc7cd/LICENSE"
+version = "31c5b904"
+sha256 = "904dc4d8749877f1dba1cda48200d2462dccbeb7c134d5e4ef6fa75e0198c8fe"
+
+[build]
+repo = "intfloat/multilingual-e5-small"
+quantize = "int8"
+
+[pack]
+id = "model.e5-small"
+type = "model"
+lang = "mul"
+title = { tr = "Anlamsal arama modeli (multilingual-e5-small)", en = "Semantic search model (multilingual-e5-small)" }
+author = "Liang Wang et al. (Microsoft)"
+version = "1.0.0"
+min_app_version = "0.1.0"
+license = "MIT"
+attribution = "Model: multilingual-e5-small (https://huggingface.co/intfloat/multilingual-e5-small)"
+publish = false
+
+[pack.citation]
+title = "Multilingual E5 Text Embeddings: A Technical Report"
+author = "Liang Wang, Nan Yang, Xiaolong Huang, Linjun Yang, Rangan Majumder, Furu Wei"
+year = "2024"
+url = "https://arxiv.org/abs/2402.05672"
+
+[pack.meta]
+embedding_model = "local/multilingual-e5-small"
+dim = 384
+normalized = true
+query_prefix = "query: "
+passage_prefix = "passage: "
+pooling = "mean"
+max_tokens = 512

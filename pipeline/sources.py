@@ -66,6 +66,8 @@ class PackMeta:
     description: dict[str, str] | None = None
     #: Also included in core.db (spec §6.2).
     bundled: bool = False
+    #: Ids of packs this pack needs (a local vector pack needs its model pack).
+    requires: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -163,6 +165,7 @@ def _parse_pack(raw: dict[str, Any], where: str) -> PackMeta:
         publish=publish,
         description=raw.get("description"),
         bundled=bool(raw.get("bundled", False)),
+        requires=tuple(str(r) for r in raw.get("requires", [])),
     )
 
 

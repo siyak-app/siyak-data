@@ -15,7 +15,7 @@ A release (tag `data-YYYY.MM.N`) contains:
 |---|---|
 | `core.db` | The database bundled with the app installer (§3). Not listed in the manifest |
 | `<pack id>.sqlite.zst` | One file per SQLite pack, zstd-compressed (§4, §4.3) |
-| `<pack id>.tar.zst` | One file per archive pack (§4.4), e.g. `morphology.qac.tar.zst` |
+| `<pack id>.tar.zst` | One file per archive pack (§4.4), e.g. `morphology.qac.tar.zst`, `model.e5-small.tar.zst` |
 | `manifest.json` | Describes every published pack (§6) |
 | `pricing.json` | AI model prices for cost estimates (spec §9.4) |
 | `SHA256SUMS` | sha256 of every asset |
@@ -140,6 +140,8 @@ The app reads `pack_info` before installing and refuses the file unless
 | `translation` | `translations (pack_id, verse_id, text)`, primary key `(pack_id, verse_id)`, `WITHOUT ROWID` |
 | `tafsir` | `tafsir (id, pack_id, verse_from, verse_to, kind)`, `tafsir_paragraphs (tafsir_id, idx, text, part, page)` (spec §5.2), see §4.6 |
 | `morphology` | `words (id, verse_id, position, text_ar, translit, gloss_en)`, `roots (id, root)`, `lemmas (id, lemma, root_id)`, `word_segments (word_id, idx, kind, text_ar, pos, lemma_id, root_id, features)` (spec §5.3), inside an archive (§4.4) |
+| `vectors` | `vectors (verse_id, embedding)`, see §4.7 |
+| `model` | none besides `pack_info`, inside an archive (§4.4), see §4.8 |
 
 A translation pack has exactly one row per verse (6,236) and no empty text.
 
@@ -207,6 +209,7 @@ must hold exactly these names, each once:
 | Type | Members |
 |---|---|
 | `morphology` | `morphology.sqlite`, `qac/COPYING`, `qac/NOTICE`, `qac/quranic-corpus-morphology-0.4.txt` |
+| `model` | `model.sqlite`, `model/LICENSE`, `model/model.onnx`, `model/tokenizer.json` |
 
 **Installation:** after the sha256 check, the app decompresses the tar
 (limit `installed_size`) and refuses it unless every member is a regular file
@@ -343,6 +346,104 @@ verses covered, gaps, gap merges, copies, edition matter, page artifacts, the
 share of verses quoted in their own passage, runs of unquoted verses, and the
 letter accounting) and `tafsir-sizes.md`.
 
+### 4.7 Vector packs
+
+One vector per verse for semantic search and cross-references (spec §7.4,
+ADR 0012 in the app). Built by `siyak-data build-embeddings` (§4.9).
+
+```sql
+CREATE TABLE vectors (
+  verse_id   INTEGER PRIMARY KEY,   -- 1..6236, every verse exactly once
+  embedding  BLOB NOT NULL          -- dim little-endian float32 values, unit length
+);
+```
+
+`meta` (manifest and `packs.meta_json`) defines the **embedding space**: the
+app compares only vectors of one space.
+
+| Key | Value |
+|---|---|
+| `embedding_model` | Canonical model name with its backend: `local/<model>`, or `openai/…`, `voyage/…`, `gemini/…`, `compat/…` |
+| `dim` | Number of values per vector |
+| `normalized` | `true`: every vector has length 1 (±0.001) |
+| `source_text` | What was embedded for each verse, in words (at most 200 characters) |
+| `backend` | `local` or `api` |
+| `model_pack` | `local` only: the model pack, which must also be the only entry of `requires` |
+| `provider`, `api_model`, `api_dimensions` | `api` only (app spec §6.1) |
+
+`pack_info.source_version` names the model pack and the text, e.g.
+`model.e5-small@1.0.0; text ar+tr+en`.
+
+**Installation:** the app creates `verse_vectors (pack_id, verse_id, embedding)`
+in content.db on the first vector pack install (it is not in
+`schema/content.sql`, so no new `SCHEMA_VERSION` was needed), deletes the pack's
+old rows and copies the new ones; uninstalling removes them (`ON DELETE CASCADE`).
+It refuses a pack whose vectors do not cover every verse, have the wrong size or
+are not finite unit vectors.
+
+**Verse text.** A local pack's `[build] text` chooses what is embedded per verse
+(`pipeline/embedding.py`): `ar` (Tanzil Simple Clean), `tr` (`tr.vakfi`), `en`
+(`en.pickthall`), or several of them joined by line breaks (`ar+tr+en`).
+`tr.diyanet` is not used: Tanzil's file repeats the text of 843 verses for their
+neighbours. The license of a vector pack follows its texts (Tanzil terms).
+
+### 4.8 Model packs
+
+A local embedding model for the queries of a `local` vector pack. The archive
+holds `model.sqlite` (only `pack_info`), the model's license and:
+
+- `model/model.onnx`: the ONNX export published in the model's repository,
+  pinned by commit and sha256 in `sources/models/<model>/source.toml`, and
+  quantized to int8 weights by the build when `[build] quantize = "int8"`;
+- `model/tokenizer.json`: the model's tokenizer with its pad token set
+  (right padding) and no truncation; the app truncates at `max_tokens`.
+
+The model's inputs are `input_ids` and `attention_mask`, plus `token_type_ids`
+(zeros) or `position_ids` when present; its first output is either the token
+vectors (pooled by `pooling`) or one vector per text.
+
+| `meta` key | Value |
+|---|---|
+| `embedding_model`, `dim`, `normalized` | As in the vector pack, which must match |
+| `query_prefix`, `passage_prefix` | Put before queries and passages, e.g. `query: ` / `passage: ` for e5 |
+| `pooling` | `mean` (mask-weighted), `cls` (first token) or `last` (last token that is not padding) |
+| `max_tokens` | Longest input; longer texts are truncated (default 512) |
+
+### 4.9 Building and evaluating
+
+The ML libraries are an optional dependency group:
+
+```sh
+uv sync --group embed
+uv run siyak-data fetch --source model.e5-small
+uv run siyak-data build-embeddings            # every model pack, then every vector pack
+uv run siyak-data eval-embeddings             # compare models and texts (PyTorch)
+uv run siyak-data eval-embeddings --pack vectors.e5-small   # a built pack, as the app runs it
+```
+
+Verse vectors are computed with ONNX Runtime from the files of the built model
+pack, with the same tokenization, inputs and pooling as the app
+(`embed/onnx.rs`), so queries embedded by the app and verses embedded here share
+one space. `build-embeddings` also writes `dist/model-tests/<model id>/`, the
+model files and reference vectors for the app's ignored test
+`SIYAK_TEST_MODEL_DIR=… cargo test -- --ignored matches_the_pipeline`. With the
+float32 model the app agrees to a cosine above 0.9999; int8 kernels differ between
+ONNX Runtime builds and CPUs (about 0.998 for e5-small, 0.975 for bge-m3, as far as the
+float32 model is from its int8 version), which leaves the evaluation scores unchanged.
+
+**Evaluation set.** `data/eval/semantic.toml` lists Turkish, English and Arabic
+queries with the verses a good result list should contain, and cross-references
+(a verse and related verses elsewhere). `eval-embeddings` reports hit@10,
+recall@10 and MRR@10 per language to `dist/reports/embedding-eval.md`
+(`embedding-eval-packs.md` for built packs).
+
+**Models.** `model.bge-m3` and `vectors.bge-m3` are the app's default local packs
+(app ADR 0012: overall 0.81 / 0.51 / 0.67, Turkish 0.90 / 0.56 / 0.79; about
+420 MB to download). Building the vectors takes about 40 minutes on an Apple
+M-series CPU. `model.e5-small` and `vectors.e5-small` (87 MB, clearly weaker)
+are kept as small packs for development and tests. Both pairs are
+`publish = false` until the release workflow builds them.
+
 ## 5. Versions
 
 - **Pack version:** SemVer, in `source.toml` `[pack].version`, bumped by hand
@@ -397,8 +498,9 @@ files and each `source.toml` `[pack]` table. Shape (spec §6.3):
   `installed_size` is the decompressed size, used for the disk-space display
   and as the decompression limit (§4.3).
 - `title` is always a `{ "tr", "en" }` object; optional `description` likewise.
-- Optional `meta` (type-specific) and `requires` (dependencies) are added by
-  later pack types (vectors, model).
+- Optional `meta` (type-specific, from `[pack.meta]`) and `requires` (ids of packs
+  this pack needs, from `[pack] requires`; a local vector pack requires its model
+  pack, §4.7).
 - `url` points at the immutable release asset of the release tag
   (`SIYAK_DATA_TAG`).
 - **`publish = false`** packs are built and validated but never written to the

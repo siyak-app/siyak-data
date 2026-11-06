@@ -39,6 +39,9 @@ PACK_TABLES: dict[str, dict[str, tuple[str, ...]]] = {
             "word_id", "idx", "kind", "text_ar", "pos", "lemma_id", "root_id", "features",
         ),
     },
+    "vectors": {"vectors": ("verse_id", "embedding")},
+    # A model pack's database holds only pack_info; its files are the model.
+    "model": {},
 }  # fmt: skip
 
 #: Archive packs: the database member and every member the archive must hold.
@@ -54,7 +57,22 @@ ARCHIVE_LAYOUT: dict[str, tuple[str, frozenset[str]]] = {
             }
         ),
     ),
+    "model": (
+        "model.sqlite",
+        frozenset({"model.sqlite", "model/LICENSE", "model/model.onnx", "model/tokenizer.json"}),
+    ),
 }
+
+#: The app creates this table when the first vector pack is installed; it is not
+#: in schema/content.sql, so adding it did not change SCHEMA_VERSION (pack-format §4.5).
+VECTOR_TABLE_DDL = """
+CREATE TABLE IF NOT EXISTS main.verse_vectors (
+  pack_id   TEXT NOT NULL REFERENCES packs(id) ON DELETE CASCADE,
+  verse_id  INTEGER NOT NULL REFERENCES verses(id),
+  embedding BLOB NOT NULL,
+  UNIQUE (pack_id, verse_id)
+)
+"""
 
 PACK_INFO_COLUMNS = ("id", "type", "version", "schema_version", "built_at", "source_version")
 
@@ -135,6 +153,17 @@ def _copy_rows(conn: sqlite3.Connection, pack_id: str, pack_type: str) -> None:
         return
     if pack_type == "tafsir":
         _copy_tafsir(conn, pack_id)
+        return
+    if pack_type == "vectors":
+        conn.execute(VECTOR_TABLE_DDL)
+        conn.execute("DELETE FROM verse_vectors WHERE pack_id = ?", (pack_id,))
+        conn.execute(
+            "INSERT INTO verse_vectors (pack_id, verse_id, embedding) "
+            "SELECT ?, verse_id, embedding FROM pack.vectors ORDER BY verse_id",
+            (pack_id,),
+        )
+        return
+    if pack_type == "model":
         return
     if pack_type == "morphology":
         # v1 keeps one morphology pack at a time: the morphology tables have no

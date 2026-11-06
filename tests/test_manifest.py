@@ -6,7 +6,7 @@ import pytest
 
 from pipeline.build_pricing import build_pricing
 from pipeline.errors import PipelineError
-from pipeline.manifest import build_manifest
+from pipeline.manifest import DEV_TAG, build_manifest
 from pipeline.sources import load_all
 
 SPEC_PACK_KEYS = {
@@ -57,6 +57,12 @@ def test_unpublished_pack_is_left_out(built_fixtures: Path, fixture_sources: Non
     manifest, warnings = build_manifest(hidden, built_fixtures, tag="t")
     assert manifest["packs"] == []
     assert any("publish = false" in w for w in warnings)
+    # For a debug build they can be listed, but never in a release.
+    manifest, warnings = build_manifest(hidden, built_fixtures, tag=DEV_TAG, unpublished=True)
+    assert {"morphology.qac", "ar.jalalayn", "ar.razi"} <= {p["id"] for p in manifest["packs"]}
+    assert any("local testing only" in w for w in warnings)
+    with pytest.raises(PipelineError, match="local testing"):
+        build_manifest(hidden, built_fixtures, tag="t", unpublished=True)
 
 
 def test_version_mismatch_requires_rebuild(built_fixtures: Path, fixture_sources: None) -> None:

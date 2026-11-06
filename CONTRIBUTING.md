@@ -57,6 +57,6 @@ Never open a PR with failing checks.
 | `pipeline/` | the Python package behind `siyak-data` |
 | `schema/content.sql` | the content database schema packs must satisfy |
 | `sources/` | one directory per source: `source.toml`, `README.md`, `LICENSE`, `NOTICE` |
-| `data/` | small hand-written data (Turkish surah names, pricing) |
+| `data/` | small hand-written data (Turkish surah names, pricing, the semantic evaluation set `eval/semantic.toml`) |
 | `tests/` | tests, shared normalization vectors, fixtures |
 | `docs/` | format and process documentation |

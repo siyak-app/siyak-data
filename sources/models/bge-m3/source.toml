@@ -1,0 +1,79 @@
+# BGE-M3, a local embedding model of semantic search (app spec §7.4, ADR 0012 in the app).
+# See docs/pack-format.md §4.6.
+
+[source]
+id = "model.bge-m3"
+name = "BGE-M3 (BAAI), ONNX export from the model's repository"
+homepage = "https://huggingface.co/BAAI/bge-m3"
+license = "MIT"
+attribution = "Model: BGE-M3, Jianlv Chen et al., Beijing Academy of Artificial Intelligence (https://huggingface.co/BAAI/bge-m3)"
+notes = """
+The ONNX export (graph, external weights and one external constant) and the tokenizer
+are the ones published in the model's repository, pinned by commit. The repository
+states license: mit but has no LICENSE file; the LICENSE of the FlagEmbedding project
+(MIT, Copyright (c) 2022 staoxiao), which publishes the model, ships as model/LICENSE.
+Only the dense vector is used (CLS token), not the sparse or multi-vector outputs.
+"""
+
+[[files]]
+name = "model.onnx"
+url = "https://huggingface.co/BAAI/bge-m3/resolve/5617a9f61b028005a4858fdac845db406aefb181/onnx/model.onnx"
+version = "5617a9f6"
+sha256 = "f84251230831afb359ab26d9fd37d5936d4d9bb5d1d5410e66442f630f24435b"
+note = "The graph; its weights are in model.onnx_data and Constant_7_attr__value."
+
+[[files]]
+name = "model.onnx_data"
+url = "https://huggingface.co/BAAI/bge-m3/resolve/5617a9f61b028005a4858fdac845db406aefb181/onnx/model.onnx_data"
+version = "5617a9f6"
+sha256 = "1eebfb28493f67bba03ce0ef64bfdc7fc5a3bd9d7493f818bb1d78cd798416b4"
+note = "float32 weights (2.3 GB); quantized to int8 by the build."
+
+[[files]]
+name = "Constant_7_attr__value"
+url = "https://huggingface.co/BAAI/bge-m3/resolve/5617a9f61b028005a4858fdac845db406aefb181/onnx/Constant_7_attr__value"
+version = "5617a9f6"
+sha256 = "cdf16f72c5d07b36484056e601ed9687f78477e5d85cee85a34f2406b7fb5906"
+
+[[files]]
+name = "tokenizer.json"
+url = "https://huggingface.co/BAAI/bge-m3/resolve/5617a9f61b028005a4858fdac845db406aefb181/tokenizer.json"
+version = "5617a9f6"
+sha256 = "21106b6d7dab2952c1d496fb21d5dc9db75c28ed361a05f5020bbba27810dd08"
+
+[[files]]
+name = "LICENSE"
+url = "https://raw.githubusercontent.com/FlagOpen/FlagEmbedding/897baa67c0ffddbfccf4e6776ff55310d67809d4/LICENSE"
+version = "897baa67"
+sha256 = "587a673933425dbc36ec61268d3b954051b2d3ef3c9b322ede357976055ffdd5"
+
+[build]
+repo = "BAAI/bge-m3"
+quantize = "int8"
+
+[pack]
+id = "model.bge-m3"
+type = "model"
+lang = "mul"
+title = { tr = "Anlamsal arama modeli (BGE-M3)", en = "Semantic search model (BGE-M3)" }
+author = "Jianlv Chen et al. (BAAI)"
+version = "1.0.0"
+min_app_version = "0.1.0"
+license = "MIT"
+attribution = "Model: BGE-M3 (https://huggingface.co/BAAI/bge-m3)"
+publish = false
+
+[pack.citation]
+title = "M3-Embedding: Multi-Linguality, Multi-Functionality, Multi-Granularity Text Embeddings Through Self-Knowledge Distillation"
+author = "Jianlv Chen, Shitao Xiao, Peitian Zhang, Kun Luo, Defu Lian, Zheng Liu"
+year = "2024"
+url = "https://arxiv.org/abs/2402.03216"
+
+[pack.meta]
+embedding_model = "local/bge-m3"
+dim = 1024
+normalized = true
+query_prefix = ""
+passage_prefix = ""
+pooling = "cls"
+max_tokens = 512

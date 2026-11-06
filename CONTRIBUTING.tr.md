@@ -58,6 +58,6 @@ Kontrolleri geçmeyen bir PR açmayın.
 | `pipeline/` | `siyak-data` komutunun Python paketi |
 | `schema/content.sql` | paketlerin uyması gereken içerik veritabanı şeması |
 | `sources/` | kaynak başına bir dizin: `source.toml`, `README.md`, `LICENSE`, `NOTICE` |
-| `data/` | elle yazılmış küçük veriler (Türkçe sure adları, fiyatlar) |
+| `data/` | elle yazılmış küçük veriler (Türkçe sure adları, fiyatlar, anlamsal değerlendirme seti `eval/semantic.toml`) |
 | `tests/` | testler, ortak normalizasyon vektörleri, test verileri |
 | `docs/` | biçim ve süreç belgeleri |

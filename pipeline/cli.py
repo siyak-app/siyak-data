@@ -1,6 +1,6 @@
 """Command-line entry point: ``uv run siyak-data <command>``.
 
-argparse (standard library) is used instead of typer: the CLI has five flat
+argparse (standard library) is used instead of typer: the CLI has a few flat
 subcommands, needs no runtime dependency and type-checks under ``mypy --strict``
 without plugins.
 """
@@ -87,11 +87,60 @@ def cmd_manifest(args: argparse.Namespace) -> None:
     """Write dist/manifest.json and dist/pricing.json."""
     apply_profile(args.profile)
     dist = dist_dir()
-    manifest, warnings = build_manifest(load_all(), dist, tag=args.tag)
+    manifest, warnings = build_manifest(
+        load_all(), dist, tag=args.tag, unpublished=args.unpublished
+    )
     for warning in warnings:
         print(f"warning  {warning}")
     print(f"wrote  {write_manifest(manifest, dist / 'manifest.json')}")
     print(f"wrote  {build_pricing(dist / 'pricing.json')}")
+
+
+def cmd_eval_embeddings(args: argparse.Namespace) -> None:
+    """Compare embedding models and verse texts on data/eval/semantic.toml."""
+    from pipeline.embedding import MODELS, VARIANTS  # noqa: PLC0415
+    from pipeline.eval_embeddings import run_eval, run_pack_eval  # noqa: PLC0415
+
+    if args.pack:
+        out = dist_dir() / "reports" / "embedding-eval-packs.md"
+        run_pack_eval(load_all(), args.pack, dist_dir(), out)
+    else:
+        out = dist_dir() / "reports" / "embedding-eval.md"
+        run_eval(args.model or list(MODELS), args.text or list(VARIANTS), out)
+    print(f"wrote  {out}")
+
+
+def cmd_build_embeddings(args: argparse.Namespace) -> None:
+    """Build the model and vector packs into dist/ (needs --group embed)."""
+    from pipeline.build_embeddings import (  # noqa: PLC0415
+        build_model_pack,
+        build_vector_pack,
+        write_reference,
+    )
+    from pipeline.schema import build_epoch, build_timestamp  # noqa: PLC0415
+
+    sources = [s for s in load_all() if s.pack is not None]
+    models = {s.pack.id: s for s in sources if s.pack and s.pack.type == "model"}
+    vectors = [s for s in sources if s.pack and s.pack.type == "vectors"]
+    wanted: list[str] = args.pack or []
+    unknown = sorted(set(wanted) - set(models) - {s.pack.id for s in vectors if s.pack})
+    if unknown:
+        raise PipelineError(f"unknown model or vector pack(s): {', '.join(unknown)}")
+    out = dist_dir()
+    out.mkdir(parents=True, exist_ok=True)
+    built_at, mtime = build_timestamp(), build_epoch()
+    for pack_id, source in sorted(models.items()):
+        if wanted and pack_id not in wanted:
+            continue
+        for path in build_model_pack(source, out, built_at=built_at, mtime=mtime):
+            print(f"built  {path}  {path.stat().st_size:,} bytes")
+        reference = write_reference(source, out, out / "model-tests" / pack_id)
+        print(f"wrote  {reference}")
+    for source in vectors:
+        if wanted and source.pack and source.pack.id not in wanted:
+            continue
+        for path in build_vector_pack(source, models, out, built_at=built_at):
+            print(f"built  {path}  {path.stat().st_size:,} bytes")
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -119,11 +168,34 @@ def build_parser() -> argparse.ArgumentParser:
     manifest = sub.add_parser("manifest", help="write dist/manifest.json and dist/pricing.json")
     manifest.add_argument("--profile", choices=["full", "fixtures"], default="full")
     manifest.add_argument("--tag", help="release tag used in pack URLs (default: $SIYAK_DATA_TAG)")
+    manifest.add_argument(
+        "--unpublished",
+        action="store_true",
+        help="also list built 'publish = false' packs (local testing with SIYAK_PACK_SOURCE)",
+    )
     manifest.set_defaults(func=cmd_manifest)
 
     check = sub.add_parser("check-updates", help="list upstream changes since the pinned versions")
     check.add_argument("--source", action="append", help="only this source id (repeatable)")
     check.set_defaults(func=cmd_check_updates)
+
+    evaluate = sub.add_parser(
+        "eval-embeddings",
+        help="compare embedding models on data/eval/semantic.toml (needs --group embed)",
+    )
+    evaluate.add_argument("--model", action="append", help="only this model key (repeatable)")
+    evaluate.add_argument("--text", action="append", help="only this verse text (repeatable)")
+    evaluate.add_argument(
+        "--pack", action="append", help="evaluate this built vector pack instead (repeatable)"
+    )
+    evaluate.set_defaults(func=cmd_eval_embeddings)
+
+    embeddings = sub.add_parser(
+        "build-embeddings",
+        help="build the model and vector packs into dist/ (needs --group embed)",
+    )
+    embeddings.add_argument("--pack", action="append", help="only this pack id (repeatable)")
+    embeddings.set_defaults(func=cmd_build_embeddings)
 
     return parser
 

@@ -1,0 +1,49 @@
+# Verse vectors of BGE-M3 (app spec §7.4, §18 questions 1–2). Built from the model pack
+# and the verse texts below; no file of its own. See docs/pack-format.md §4.5.
+
+[source]
+id = "vectors.bge-m3"
+name = "Verse vectors, BGE-M3"
+homepage = "https://github.com/siyak-app/siyak-data"
+license = "Derived from the model pack and the texts below"
+attribution = "Computed by siyak-data from the Tanzil Quran text and translations"
+notes = """
+Each verse is embedded as one text: Tanzil's Simple Clean Arabic, the Diyanet Vakfı
+Turkish translation (tr.vakfi) and Pickthall's English translation (en.pickthall), one per
+line. data/eval/semantic.toml chose this text: it scored best for every model compared
+(dist/reports/embedding-eval.md).
+"""
+
+[build]
+text = "ar+tr+en"
+
+[pack]
+id = "vectors.bge-m3"
+type = "vectors"
+lang = "mul"
+title = { tr = "Anlamına göre arama (BGE-M3)", en = "Semantic search (BGE-M3)" }
+author = "Siyak contributors"
+version = "1.0.0"
+min_app_version = "0.1.0"
+license = "Non-commercial use (Tanzil terms: the vectors are computed from Tanzil translations)"
+attribution = "Computed from the Tanzil Quran text (CC BY 3.0) and the Tanzil translations tr.vakfi and en.pickthall (https://tanzil.net)"
+requires = ["model.bge-m3"]
+publish = false
+
+[pack.license_terms]
+tr = [
+  "Vektörler Tanzil'in Arapça metninden ve Tanzil çevirilerinden (Diyanet Vakfı, Pickthall) hesaplanmıştır.",
+  "Tanzil çevirileri yalnızca ticari olmayan kullanım için sunar.",
+]
+en = [
+  "The vectors are computed from Tanzil's Arabic text and Tanzil translations (Diyanet Vakfı, Pickthall).",
+  "Tanzil provides its translations for non-commercial use only.",
+]
+
+[pack.meta]
+embedding_model = "local/bge-m3"
+dim = 1024
+normalized = true
+source_text = "Arabic (Tanzil Simple Clean), Turkish (Diyanet Vakfı) and English (Pickthall), one text per verse"
+backend = "local"
+model_pack = "model.bge-m3"
