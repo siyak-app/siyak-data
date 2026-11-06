@@ -370,6 +370,8 @@ app compares only vectors of one space.
 | `backend` | `local` or `api` |
 | `model_pack` | `local` only: the model pack, which must also be the only entry of `requires` |
 | `provider`, `api_model`, `api_dimensions` | `api` only (app spec §6.1) |
+| `query_prefix`, `passage_prefix` | `api` only, optional: text put before queries and passages; verses are embedded with `passage_prefix` |
+| `task_type` | `gemini` only, optional `true`: send `RETRIEVAL_QUERY`/`RETRIEVAL_DOCUMENT` (`gemini-embedding-001`) |
 
 `pack_info.source_version` names the model pack and the text, e.g.
 `model.e5-small@1.0.0; text ar+tr+en`.
