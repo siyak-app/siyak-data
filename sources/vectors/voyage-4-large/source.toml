@@ -54,3 +54,10 @@ backend = "api"
 provider = "voyage"
 api_model = "voyage-4-large"
 api_dimensions = 1024
+
+[[files]]
+name = "vectors.npy"
+url = "https://github.com/siyak-app/siyak-data/releases/download/vector-inputs/vectors.voyage-4-large-1.0.0.npy"
+version = "1.0.0"
+sha256 = "118077402176155291cdb4c15ca07e071e56c363289f0b853c25c577465a0a71"
+note = "Verse vectors computed once by a maintainer (export-vectors)."

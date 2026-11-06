@@ -138,7 +138,8 @@ def test_the_gemini_pack_is_declared_as_the_app_reads_it() -> None:
     assert spec.dim == 1024
     assert source.pack is not None
     assert source.pack.requires == ()
-    assert source.pack.publish
+    # Unpublished until its vectors are built and pinned; then validate requires the pin.
+    assert not source.pack.publish
     assert source.pack.terms_ack
 
 

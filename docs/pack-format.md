@@ -487,8 +487,9 @@ recall@10 and MRR@10 per language to `dist/reports/embedding-eval.md`
 **Models.** `model.bge-m3` and `vectors.bge-m3` are the app's default local packs
 (app ADR 0012: overall 0.81 / 0.51 / 0.67, Turkish 0.90 / 0.56 / 0.79; about
 420 MB to download). Building the vectors takes about 40 minutes on an Apple
-M-series CPU, which is why their vectors are pinned. `vectors.gemini-embedding-2` and
-`vectors.voyage-4-large` (1024 values each) are the published `api` packs.
+M-series CPU, which is why their vectors are pinned. `vectors.voyage-4-large`
+(1024 values) is the published `api` pack; `vectors.gemini-embedding-2` (1024 values) follows once
+its vectors are built and pinned (`publish = false` until then).
 `model.e5-small` and `vectors.e5-small` (87 MB, clearly weaker) are kept as small
 packs for development and tests (`publish = false`).
 

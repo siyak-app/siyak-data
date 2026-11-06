@@ -48,3 +48,10 @@ normalized = true
 source_text = "Arabic (Tanzil Simple Clean), Turkish (Diyanet Vakfı) and English (Pickthall), one text per verse"
 backend = "local"
 model_pack = "model.bge-m3"
+
+[[files]]
+name = "vectors.npy"
+url = "https://github.com/siyak-app/siyak-data/releases/download/vector-inputs/vectors.bge-m3-1.0.0.npy"
+version = "1.0.0"
+sha256 = "7971de88edf397536a2ba49778b7f703097466bdd5ad090d2fc83eca6ae9c74d"
+note = "Verse vectors computed once by a maintainer (export-vectors)."
