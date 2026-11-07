@@ -124,6 +124,16 @@ def upstream_dir(source: Source) -> Path:
     return cache_dir() / source.id / "upstream"
 
 
+def _scratch_dir() -> Path:
+    """Where encoding and checking unpack gigabytes: the cache, not a small /tmp.
+
+    Created on demand, since a fresh checkout (CI) has no ``.cache/``.
+    """
+    path = cache_dir()
+    path.mkdir(parents=True, exist_ok=True)
+    return path
+
+
 def _source_dir(source: Source) -> Path:
     return source.path.parent
 
@@ -440,7 +450,7 @@ def build_audio_pack(
         raise PipelineError(f"{license_file} is missing (shipped as {AUDIO_LICENSE_MEMBER})")
     verify_upstream(source)
     out_dir.mkdir(parents=True, exist_ok=True)
-    with tempfile.TemporaryDirectory(prefix="siyak-audio-", dir=cache_dir()) as tmp:
+    with tempfile.TemporaryDirectory(prefix="siyak-audio-", dir=_scratch_dir()) as tmp:
         work = Path(tmp)
         encoded = encode_all(source, work, workers or os.cpu_count() or 4)
         db = out_dir / f"{pack.id}.sqlite"
@@ -506,7 +516,7 @@ def check_audio_pack(archive: Path, pack_id: str, version: str, workers: int = 8
     problems: list[str] = []
     if archive.stat().st_size >= MAX_ASSET_SIZE:
         problems.append(f"{archive.name}: {archive.stat().st_size:,} bytes, GitHub allows < 2 GiB")
-    with tempfile.TemporaryDirectory(prefix="siyak-audio-check-", dir=cache_dir()) as tmp:
+    with tempfile.TemporaryDirectory(prefix="siyak-audio-check-", dir=_scratch_dir()) as tmp:
         files = extract_archive(
             archive,
             Path(tmp),
