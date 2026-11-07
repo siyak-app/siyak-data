@@ -112,11 +112,22 @@ CREATE TABLE IF NOT EXISTS main.verse_vectors (
 PACK_INFO_COLUMNS = ("id", "type", "version", "schema_version", "built_at", "source_version")
 
 
+#: The oldest schema a pack of each type may be built for: the one that last
+#: changed the tables the pack fills (siyak's ``oldest_schema``). Schema 2 rebuilt
+#: tafsir_paragraphs and verses_fts; schema 3 only widened ``packs.type``.
+OLDEST_SCHEMA = {
+    "translation": 2,
+    "tafsir": 2,
+    "morphology": 2,
+    "vectors": 2,
+    "model": 1,
+    "audio": 1,
+}
+
+
 def schema_supported(pack_type: str, schema_version: int) -> bool:
     """Whether a pack built for ``schema_version`` installs into the current schema."""
-    if pack_type in FILES_ONLY_TYPES:
-        return 1 <= schema_version <= SCHEMA_VERSION
-    return schema_version == SCHEMA_VERSION
+    return OLDEST_SCHEMA.get(pack_type, SCHEMA_VERSION) <= schema_version <= SCHEMA_VERSION
 
 
 def check_pack_structure(conn: sqlite3.Connection, pack_type: str, schema: str = "main") -> None:

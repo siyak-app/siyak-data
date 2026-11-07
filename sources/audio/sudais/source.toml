@@ -54,3 +54,9 @@ qirat = "hafs"
 bitrate = 64
 source = "quran.com"
 quran_com_id = 3
+
+[build.prebuilt]
+tag = "audio-2026.11.0"
+size = 598990721
+installed_size = 613509120
+sha256 = "25f1a173681bd336c39c3f650e85e222170a679dc6f280884cf7395655f8155f"

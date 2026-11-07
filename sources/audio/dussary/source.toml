@@ -53,3 +53,9 @@ style = "murattal"
 qirat = "hafs"
 bitrate = 64
 source = "everyayah"
+
+[build.prebuilt]
+tag = "audio-2026.11.0"
+size = 736087367
+installed_size = 750940160
+sha256 = "d1538c95ab203401f3e48b01b25eb1d319182cc92554993903d7bc6f61e8d1b0"

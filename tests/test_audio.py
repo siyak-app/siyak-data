@@ -96,8 +96,10 @@ def test_files_only_packs_accept_older_schemas() -> None:
     assert schema_supported("audio", 1)
     assert schema_supported("model", SCHEMA_VERSION)
     assert not schema_supported("audio", SCHEMA_VERSION + 1)
-    assert not schema_supported("translation", SCHEMA_VERSION - 1)
     assert schema_supported("translation", SCHEMA_VERSION)
+    # Schema 3 left the tables of content packs alone.
+    assert schema_supported("vectors", 2)
+    assert not schema_supported("tafsir", 1)
 
 
 def test_quran_com_addresses_become_https() -> None:

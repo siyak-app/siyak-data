@@ -40,10 +40,13 @@ the number of the app's content migrations (`siyak/src-tauri/migrations/content/
 `tafsir_paragraphs` with `part`/`page`; `0003` allowing `packs.type = 'audio'`). Each
 new app migration that changes the content schema raises it by one.
 
-Packs whose database holds only `pack_info` (`model`, `audio`) have no tables a
-schema change could break: they install under any `schema_version` from 1 up to the
-current one (`schema_supported` in `pipeline/install.py`, the same rule in the app).
-Every other pack must match `SCHEMA_VERSION` exactly. The CI job `schema-compat` checks that the
+A pack installs under any `schema_version` from the oldest schema of its type up
+to the current one (`OLDEST_SCHEMA` and `schema_supported` in `pipeline/install.py`,
+`oldest_schema` in the app). The oldest schema of a type is the one that last
+changed the tables the pack fills: 1 for `model` and `audio`, whose database holds
+only `pack_info`; 2 for `translation`, `tafsir`, `morphology` and `vectors` (`0003`
+touched none of their tables). A migration that changes a type's tables raises its
+entry in both places. The CI job `schema-compat` checks that the
 app's migrations produce exactly this structure.
 
 ## 3. `core.db`
