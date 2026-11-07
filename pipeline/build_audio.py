@@ -17,8 +17,11 @@ builds them locally, uploads them to an ``audio-*`` release and pins each asset 
 (manifest.py) without downloading it.
 
 ``[build]`` keys:
-- ``quran_com = "verses"`` with ``recitation_id`` (API v4), or
-  ``quran_com = "chapters"`` with ``reciter_id`` (QDC);
+- ``quran_com = "verses"`` with ``recitation_id`` (API v4),
+  ``quran_com = "chapters"`` with ``reciter_id`` (QDC), or
+  ``everyayah = "<directory>"`` for a recitation that Quran.com has only as chapter
+  files whose verse timings do not fit them; EveryAyah has the same recitation as
+  verse files, so nothing is cut;
 - ``prebuilt = { tag, size, installed_size, sha256 }`` once uploaded.
 """
 
@@ -87,8 +90,21 @@ def verses() -> list[tuple[int, int]]:
     ]
 
 
+def _everyayah_dir(source: Source) -> str | None:
+    value = source.extra.get("everyayah")
+    if value is None:
+        return None
+    if not isinstance(value, str) or "quran_com" in source.extra:
+        raise PipelineError(
+            f"{source.path}: [build] everyayah must be a directory name, without quran_com"
+        )
+    return value
+
+
 def mode(source: Source) -> str:
-    """``verses`` or ``chapters`` (``[build] quran_com``)."""
+    """``verses`` or ``chapters`` (``[build] quran_com``; ``everyayah`` is ``verses``)."""
+    if _everyayah_dir(source) is not None:
+        return "verses"
     value = source.extra.get("quran_com")
     if value not in ("verses", "chapters"):
         raise PipelineError(f"{source.path}: [build] quran_com must be 'verses' or 'chapters'")
@@ -208,7 +224,12 @@ def _download_one(client: httpx.Client, url: str, dest: Path, attempts: int = 6)
 
 
 def _upstream_list(source: Source) -> list[tuple[str, str]]:
-    """``(name, url)`` of every upstream file, from the Quran.com API."""
+    """``(name, url)`` of every upstream file, from the Quran.com API or EveryAyah."""
+    directory = _everyayah_dir(source)
+    if directory is not None:
+        return [
+            (f"{s:03d}{a:03d}.mp3", quran_com.everyayah_url(directory, s, a)) for s, a in verses()
+        ]
     if mode(source) == "verses":
         files = quran_com.verse_files(_api_id(source))
         missing = [v for v in verses() if v not in files]
@@ -331,6 +352,12 @@ def chapter_cuts(timings: list[tuple[int, int]]) -> list[int]:
 
 def encode_chapter(src: Path, cuts_ms: list[int], out_dir: Path) -> list[Path]:
     """Cut a chapter file into one encoded file per verse (in one ffmpeg pass)."""
+    duration = float(probe(src).get("duration", 0))
+    if cuts_ms and cuts_ms[-1] / 1000 + MIN_VERSE_SECONDS > duration:
+        raise PipelineError(
+            f"{src.name} is {duration:.1f} s long, but its last verse starts at "
+            f"{cuts_ms[-1] / 1000:.1f} s: the file is not the recording the timings are for"
+        )
     out_dir.mkdir(parents=True, exist_ok=True)
     times = ",".join(f"{ms / 1000:.3f}" for ms in cuts_ms)
     _ffmpeg(
@@ -392,7 +419,12 @@ def encode_all(source: Source, work: Path, workers: int) -> dict[str, Path]:
 def source_version(source: Source) -> str:
     """``pack_info.source_version``: the upstream list, its pins and the encoder."""
     pins = sha256_file(_source_dir(source) / FILES_TSV)[:16]
-    upstream = f"quran.com {mode(source)} {_api_id(source)}"
+    directory = _everyayah_dir(source)
+    upstream = (
+        f"everyayah {directory}"
+        if directory is not None
+        else f"quran.com {mode(source)} {_api_id(source)}"
+    )
     return f"{upstream}; files.tsv@{pins}; ffmpeg {ffmpeg_version()}"
 
 

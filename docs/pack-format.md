@@ -518,14 +518,19 @@ recording's attribution and rights, shown on About → Sources) and one file per
 - **Compression:** zstd level 3 (`AUDIO_ZSTD_LEVEL`): mp3 does not shrink further, and
   level 19 would take long on about a gigabyte. A pack must stay below 2 GiB, GitHub's
   limit for a release asset.
-- **Source:** Quran.com (`pipeline/quran_com.py`). `[build] quran_com = "verses"` with
-  `recitation_id` takes Quran.com's verse files (API v4); `"chapters"` with `reciter_id`
-  takes surah files and cuts them at Quran.com's verse timings (QDC), each cut in the
-  middle of the pause between two verses. The upstream files are pinned in
-  `sources/audio/<id>/files.tsv` (name, sha256, url), the timings in `timings.tsv`;
-  `fetch-audio --pin` writes both.
+- **Source:** Quran.com or EveryAyah (`pipeline/quran_com.py`). `[build] quran_com =
+  "verses"` with `recitation_id` takes Quran.com's verse files (API v4); `everyayah =
+  "<directory>"` takes EveryAyah's verse files (`https://everyayah.com/data/<directory>/`);
+  `quran_com = "chapters"` with `reciter_id` takes surah files and cuts them at Quran.com's
+  verse timings (QDC), each cut in the middle of the pause between two verses. Cutting
+  fails when a surah file is shorter than its timings or the timings are out of order;
+  Quran.com's two chapter-only reciters (Yasser ad-Dussary, Khalifah al-Tunaiji) have
+  both faults, so their packs use EveryAyah's verse files of the same recitations. The
+  upstream files are pinned in `sources/audio/<id>/files.tsv` (name, sha256, url), the
+  timings in `timings.tsv`; `fetch-audio --pin` writes both.
 - **`meta`:** `reciter` (`{tr, en}`), `style` (`murattal`, `mujawwad` or `muallim`),
-  `qirat` (`hafs`), `bitrate` (64), `source` (`quran.com`), `quran_com_id`. The app
+  `qirat` (`hafs`), `bitrate` (64), `source` (`quran.com` or `everyayah`) and, for
+  Quran.com, `quran_com_id`. The app
   lists a pack whose `reciter` or `style` is missing as unsupported.
 - **Gate** (`check_audio_pack`, run by `build-audio`): exactly the members above, each
   verse an mp3 with one channel lasting at least 0.3 s (`ffprobe`), `pack_info` as in

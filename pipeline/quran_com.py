@@ -26,6 +26,8 @@ from pipeline.fetch import TIMEOUT, USER_AGENT
 V4_API = "https://api.quran.com/api/v4"
 QDC_API = "https://api.qurancdn.com/api/qdc"
 VERSES_HOST = "https://verses.quran.com/"
+#: EveryAyah's verse files; Quran.com serves some of its recitations from a mirror of them.
+EVERYAYAH_DATA = "https://everyayah.com/data/"
 SURAH_COUNT = 114
 
 
@@ -56,6 +58,13 @@ def absolute_url(url: str) -> str:
     if url.startswith(("https://", "http://")):
         return "https://" + url.removeprefix("https://").removeprefix("http://")
     return VERSES_HOST + url.lstrip("/")
+
+
+def everyayah_url(directory: str, surah: int, ayah: int) -> str:
+    """The address of one verse file in an EveryAyah recitation directory."""
+    if not directory or "/" in directory or directory.startswith("."):
+        raise PipelineError(f"not an EveryAyah directory: {directory!r}")
+    return f"{EVERYAYAH_DATA}{directory}/{surah:03d}{ayah:03d}.mp3"
 
 
 def verse_key(key: str) -> tuple[int, int]:

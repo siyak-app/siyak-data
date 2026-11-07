@@ -113,6 +113,30 @@ def test_quran_com_addresses_become_https() -> None:
     assert quran_com.verse_key("2:255") == (2, 255)
     with pytest.raises(PipelineError):
         quran_com.verse_key("x")
+    assert (
+        quran_com.everyayah_url("Yasser_Ad-Dussary_128kbps", 92, 1)
+        == "https://everyayah.com/data/Yasser_Ad-Dussary_128kbps/092001.mp3"
+    )
+    for bad in ("", "../x", "a/b"):
+        with pytest.raises(PipelineError):
+            quran_com.everyayah_url(bad, 1, 1)
+
+
+def test_everyayah_sources_list_one_file_per_verse(tmp_path: Path) -> None:
+    path = _source(tmp_path)
+    text = path.read_text(encoding="utf-8")
+    text = text.replace('quran_com = "verses"\nrecitation_id = 7', 'everyayah = "Dir_64kbps"')
+    path.write_text(text, encoding="utf-8")
+    source = load_source(path)
+    assert build_audio.mode(source) == "verses"
+    files = build_audio._upstream_list(source)
+    assert len(files) == 6236
+    assert files[-1] == ("114006.mp3", "https://everyayah.com/data/Dir_64kbps/114006.mp3")
+
+    both = tmp_path / "both.toml"
+    both.write_text(path.read_text().replace("[build]\n", '[build]\nquran_com = "verses"\n'))
+    with pytest.raises(PipelineError, match="without quran_com"):
+        build_audio.mode(load_source(both))
 
 
 def test_chapter_cuts_fall_in_the_pauses() -> None:
@@ -200,6 +224,9 @@ def test_encodes_mono_and_cuts_chapters(tmp_path: Path) -> None:
     assert len(parts) == 3
     assert durations[0] == pytest.approx(2.0, abs=0.1)
     assert durations[2] == pytest.approx(2.0, abs=0.1)
+
+    with pytest.raises(PipelineError, match="not the recording"):
+        encode_chapter(chapter, [500, 2500, 7000], tmp_path / "late")
 
     short = _sine(tmp_path / "short.mp3", 0.1, channels=1)
     assert check_audio_file(short) is not None

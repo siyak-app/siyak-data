@@ -7,22 +7,25 @@ Verse-by-verse recitation by Khalifah al-Tunaiji (murattal, Hafs ʿan ʿĀṣim)
 
 | | |
 |---|---|
-| Publisher | Quran.com (Quran.Foundation) |
-| Quran.com id | chapter reciter 161 |
-| Upstream | one mp3 per surah plus verse timings (QDC `/audio/reciters/161/audio_files?segments=true`) |
-| Pins | `files.tsv` (name, sha256, url of every upstream file); `timings.tsv` (verse start and end in ms) |
-| Processing | each surah cut at the middle of the pause between verses, then each verse re-encoded to mono MP3, 64 kbit/s, no tags |
+| Publisher | EveryAyah, https://everyayah.com |
+| Upstream | one mp3 per verse, `https://everyayah.com/data/khalefa_al_tunaiji_64kbps/SSSAAA.mp3` (64 kbit/s) |
+| Pins | `files.tsv` (name, sha256, url of every upstream file) |
+| Processing | each verse re-encoded to mono MP3, 64 kbit/s, no tags |
+
+Quran.com has this recitation only as one file per surah (chapter reciter 161). Its verse
+timings do not fit all of those files (a surah file shorter than its timings, or timings out
+of order), so the pack takes EveryAyah's verse files and cuts nothing.
 
 Verse files do not include the basmala; the app plays `001001.mp3` (al-Fātiḥa 1:1) before
 the first verse of every surah except al-Fātiḥa and at-Tawba.
 
 ## Rights
 
-Quran.com states no license for its recitation audio; the rights belong to the reciter
-and the recording's producer. Whether the audio may be redistributed was not verified.
-The project maintainer decided on 2026-11-07 to publish the pack with attribution, for
-personal and non-commercial listening, and to remove it at the rights holder's request
-(app ADR 0014). `LICENSE` is shipped in the pack and shown on About → Sources.
+EveryAyah states no license for its recitation audio; the rights belong to the reciter and
+the recording's producer. Whether the audio may be redistributed was not verified. The
+project maintainer decided on 2026-11-07 to publish the pack with attribution, for personal
+and non-commercial listening, and to remove it at the rights holder's request (app ADR
+0014). `LICENSE` is shipped in the pack and shown on About → Sources.
 
 ## Rebuild
 

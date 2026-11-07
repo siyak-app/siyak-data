@@ -1,23 +1,23 @@
-# Khalifah al-Tunaiji: recitation audio from Quran.com. See README.md in this directory.
-# Upstream files are pinned in files.tsv and timings.tsv (pipeline/build_audio.py).
+# Khalifah al-Tunaiji: recitation audio from EveryAyah. See README.md in this directory.
+# Upstream files are pinned in files.tsv (pipeline/build_audio.py).
 
 [source]
 id = "audio.tunaiji"
-name = "Quran.com recitation: Khalifah al-Tunaiji"
-homepage = "https://quran.com"
-license = "Copyright of the reciter and the recording's producer; no license stated by Quran.com"
-attribution = "Recitation: Khalifah al-Tunaiji (Murattal). Source: Quran.com (Quran.Foundation), https://quran.com"
+name = "EveryAyah recitation: Khalifah al-Tunaiji"
+homepage = "https://everyayah.com"
+license = "Copyright of the reciter and the recording's producer; no license stated by EveryAyah"
+attribution = "Recitation: Khalifah al-Tunaiji (Murattal). Source: EveryAyah, https://everyayah.com"
 notes = """
-Quran.com chapter recitation 161 (QDC /audio/reciters/161/audio_files): one mp3 per surah,
-from download.quranicaudio.com, cut into verses at Quran.com's verse timings (timings.tsv).
+EveryAyah verse files (khalefa_al_tunaiji_64kbps): one mp3 per verse. Quran.com has this
+recitation only as surah files (chapter reciter 161) whose verse timings do not fit some
+of the files, so the verse files are taken from EveryAyah instead of cutting the surahs.
 Re-encoded to mono MP3 at 64 kbit/s, without tags. No license for redistribution was
 found or granted; the project maintainer decided on 2026-11-07 to publish with
 attribution and to remove the pack on the rights holder's request (app ADR 0014).
 """
 
 [build]
-quran_com = "chapters"
-reciter_id = 161
+everyayah = "khalefa_al_tunaiji_64kbps"
 
 [pack]
 id = "audio.tunaiji"
@@ -27,22 +27,22 @@ title = { tr = "Halife et-Tuneyci", en = "Khalifah al-Tunaiji" }
 author = "Khalifah al-Tunaiji"
 version = "1.0.0"
 min_app_version = "0.1.0"
-license = "Copyright of the reciter; redistributed from Quran.com with attribution"
-attribution = "Recitation: Khalifah al-Tunaiji (Murattal). Source: Quran.com (Quran.Foundation), https://quran.com"
+license = "Copyright of the reciter; redistributed from EveryAyah with attribution"
+attribution = "Recitation: Khalifah al-Tunaiji (Murattal). Source: EveryAyah, https://everyayah.com"
 publish = true
 
 [pack.description]
-tr = "Halife et-Tuneyci kıraatiyle ayet ayet Kur'an tilaveti (Hafs, murattal). Kaynak: Quran.com."
-en = "Verse-by-verse Quran recitation by Khalifah al-Tunaiji (Hafs, murattal). Source: Quran.com."
+tr = "Halife et-Tuneyci kıraatiyle ayet ayet Kur'an tilaveti (Hafs, murattal). Kaynak: EveryAyah."
+en = "Verse-by-verse Quran recitation by Khalifah al-Tunaiji (Hafs, murattal). Source: EveryAyah."
 
 [pack.license_terms]
 tr = [
-  "Kayıtların hakları kariye ve kaydın yapımcısına aittir; ses Quran.com'dan atıfla dağıtılmaktadır.",
+  "Kayıtların hakları kariye ve kaydın yapımcısına aittir; ses EveryAyah'tan atıfla dağıtılmaktadır.",
   "Yalnızca kişisel, ticari olmayan dinleme içindir.",
   "Hak sahibinin talebi üzerine paket kaldırılır.",
 ]
 en = [
-  "The recordings belong to the reciter and the recording's producer; the audio is redistributed from Quran.com with attribution.",
+  "The recordings belong to the reciter and the recording's producer; the audio is redistributed from EveryAyah with attribution.",
   "For personal, non-commercial listening only.",
   "The pack is removed on the rights holder's request.",
 ]
@@ -52,5 +52,4 @@ reciter = { tr = "Halife et-Tuneyci", en = "Khalifah al-Tunaiji" }
 style = "murattal"
 qirat = "hafs"
 bitrate = 64
-source = "quran.com"
-quran_com_id = 161
+source = "everyayah"
