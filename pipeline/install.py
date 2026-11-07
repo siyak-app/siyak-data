@@ -42,7 +42,41 @@ PACK_TABLES: dict[str, dict[str, tuple[str, ...]]] = {
     "vectors": {"vectors": ("verse_id", "embedding")},
     # A model pack's database holds only pack_info; its files are the model.
     "model": {},
+    # Likewise an audio pack: its files are one mp3 per verse (pack-format §4.10).
+    "audio": {},
 }  # fmt: skip
+
+#: Pack types whose database holds only pack_info. They carry no content tables, so
+#: they install under any content schema up to the current one (pack-format §2).
+FILES_ONLY_TYPES = frozenset({"model", "audio"})
+
+#: Verses per surah (Hafs, Kufan count), 6,236 in all; the order of the global verse ids.
+AYAH_COUNTS = (
+    7, 286, 200, 176, 120, 165, 206, 75, 129, 109, 123, 111, 43, 52, 99, 128, 111, 110, 98, 135,
+    112, 78, 118, 64, 77, 227, 93, 88, 69, 60, 34, 30, 73, 54, 45, 83, 182, 88, 75, 85, 54, 53,
+    89, 59, 37, 35, 38, 29, 18, 45, 60, 49, 62, 55, 78, 96, 29, 22, 24, 13, 14, 11, 11, 18, 12,
+    12, 30, 52, 52, 44, 28, 28, 20, 56, 40, 31, 50, 40, 46, 42, 29, 19, 36, 25, 22, 17, 19, 26,
+    30, 20, 15, 21, 11, 8, 8, 19, 5, 8, 8, 11, 11, 8, 3, 9, 5, 4, 7, 3, 6, 3, 5, 4, 5, 6,
+)  # fmt: skip
+
+AUDIO_DB_MEMBER = "audio.sqlite"
+AUDIO_LICENSE_MEMBER = "audio/LICENSE"
+
+
+def audio_member(surah: int, ayah: int) -> str:
+    """The archive member of one verse's recitation: ``audio/SSSAAA.mp3``."""
+    return f"audio/{surah:03d}{ayah:03d}.mp3"
+
+
+def audio_members() -> frozenset[str]:
+    """Every member of an audio pack: its database, LICENSE and one mp3 per verse."""
+    verses = {
+        audio_member(surah, ayah)
+        for surah, count in enumerate(AYAH_COUNTS, start=1)
+        for ayah in range(1, count + 1)
+    }
+    return frozenset({AUDIO_DB_MEMBER, AUDIO_LICENSE_MEMBER, *verses})
+
 
 #: Archive packs: the database member and every member the archive must hold.
 ARCHIVE_LAYOUT: dict[str, tuple[str, frozenset[str]]] = {
@@ -61,6 +95,7 @@ ARCHIVE_LAYOUT: dict[str, tuple[str, frozenset[str]]] = {
         "model.sqlite",
         frozenset({"model.sqlite", "model/LICENSE", "model/model.onnx", "model/tokenizer.json"}),
     ),
+    "audio": (AUDIO_DB_MEMBER, audio_members()),
 }
 
 #: The app creates this table when the first vector pack is installed; it is not
@@ -75,6 +110,13 @@ CREATE TABLE IF NOT EXISTS main.verse_vectors (
 """
 
 PACK_INFO_COLUMNS = ("id", "type", "version", "schema_version", "built_at", "source_version")
+
+
+def schema_supported(pack_type: str, schema_version: int) -> bool:
+    """Whether a pack built for ``schema_version`` installs into the current schema."""
+    if pack_type in FILES_ONLY_TYPES:
+        return 1 <= schema_version <= SCHEMA_VERSION
+    return schema_version == SCHEMA_VERSION
 
 
 def check_pack_structure(conn: sqlite3.Connection, pack_type: str, schema: str = "main") -> None:
@@ -119,7 +161,7 @@ def install_pack(conn: sqlite3.Connection, pack_path: Path, packs_row: dict[str,
             raise PipelineError(
                 f"{pack_path}: pack_info says {info.id}/{info.type}, expected {pack_id}/{pack_type}"
             )
-        if info.schema_version != SCHEMA_VERSION:
+        if not schema_supported(pack_type, info.schema_version):
             raise PipelineError(
                 f"{pack_path}: schema_version {info.schema_version}, expected {SCHEMA_VERSION}"
             )
@@ -163,7 +205,7 @@ def _copy_rows(conn: sqlite3.Connection, pack_id: str, pack_type: str) -> None:
             (pack_id,),
         )
         return
-    if pack_type == "model":
+    if pack_type in FILES_ONLY_TYPES:
         return
     if pack_type == "morphology":
         # v1 keeps one morphology pack at a time: the morphology tables have no

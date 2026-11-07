@@ -63,10 +63,11 @@ strict = true
 python_version = "3.12"
 files = ["pipeline"]
 
-# The embedding modules import the optional `embed` group lazily; CI type-checks
-# without it, and onnxruntime ships no type information.
+# The embedding modules import the optional groups lazily. CI type-checks with the
+# `vectors` group (numpy has types); onnxruntime, tokenizers and the `embed` group's
+# libraries ship none.
 [[tool.mypy.overrides]]
-module = ["numpy", "numpy.*", "onnxruntime", "onnxruntime.*", "sentence_transformers", "tokenizers", "torch"]
+module = ["onnxruntime", "onnxruntime.*", "sentence_transformers", "tokenizers", "torch"]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]

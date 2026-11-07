@@ -19,6 +19,9 @@ import zstandard
 from pipeline.errors import PipelineError
 
 ZSTD_LEVEL = 19
+#: Audio packs hold mp3 files, which zstd cannot shrink further; a low level keeps
+#: building a pack of about a gigabyte fast (pack-format §4.10).
+AUDIO_ZSTD_LEVEL = 3
 SUFFIX = ".zst"
 #: Upper bound for a decompressed pack when no expected size is known (manifest generation).
 MAX_PACK_SIZE = 4 << 30
@@ -26,10 +29,10 @@ _CHUNK = 1 << 20
 _FRAME_HEADER_MAX = 18
 
 
-def compress_pack(src: Path) -> Path:
+def compress_pack(src: Path, level: int = ZSTD_LEVEL) -> Path:
     """Write ``<src>.zst`` next to ``src`` and return its path."""
     out = src.with_name(src.name + SUFFIX)
-    cctx = zstandard.ZstdCompressor(level=ZSTD_LEVEL, write_checksum=True, write_content_size=True)
+    cctx = zstandard.ZstdCompressor(level=level, write_checksum=True, write_content_size=True)
     with src.open("rb") as ifh, out.open("wb") as ofh:
         cctx.copy_stream(ifh, ofh, size=src.stat().st_size)
     return out

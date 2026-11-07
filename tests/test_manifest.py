@@ -75,13 +75,31 @@ def test_version_mismatch_requires_rebuild(built_fixtures: Path, fixture_sources
         build_manifest(bumped, built_fixtures, tag="t")
 
 
-def test_pricing_placeholder(tmp_path: Path) -> None:
+def test_pricing_lists_models_sorted(tmp_path: Path) -> None:
     out = build_pricing(tmp_path / "pricing.json")
-    assert json.loads(out.read_text(encoding="utf-8")) == {
-        "updated_at": "2026-10-21",
-        "currency": "USD",
-        "models": {},
+    pricing = json.loads(out.read_text(encoding="utf-8"))
+    assert pricing["currency"] == "USD"
+    assert list(pricing["models"]) == sorted(pricing["models"])
+    assert pricing["models"]["anthropic/claude-sonnet-5-5"] == {
+        "input_per_mtok": 2.0,
+        "output_per_mtok": 10.0,
     }
+
+
+@pytest.mark.parametrize(
+    "table",
+    [
+        '[models."anthropic/x"]\ninput_per_mtok = 1.0\n',
+        '[models."no-provider"]\ninput_per_mtok = 1.0\noutput_per_mtok = 1.0\n',
+        '[models."openai/x"]\ninput_per_mtok = -1.0\noutput_per_mtok = 1.0\n',
+        '[models."openai/x"]\ninput_per_mtok = "free"\noutput_per_mtok = 1.0\n',
+    ],
+)
+def test_pricing_refuses_bad_models(tmp_path: Path, table: str) -> None:
+    source = tmp_path / "pricing.toml"
+    source.write_text('updated_at = "2026-11-07"\ncurrency = "USD"\n' + table, encoding="utf-8")
+    with pytest.raises(PipelineError):
+        build_pricing(tmp_path / "pricing.json", source)
 
 
 def test_publishing_without_required_permission_is_refused(

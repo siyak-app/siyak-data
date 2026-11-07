@@ -1,0 +1,56 @@
+# Mahmoud Khalil al-Husary (Muallim): recitation audio from Quran.com. See README.md in this directory.
+# Upstream files are pinned in files.tsv (pipeline/build_audio.py).
+
+[source]
+id = "audio.husary-muallim"
+name = "Quran.com recitation: Mahmoud Khalil al-Husary (Muallim)"
+homepage = "https://quran.com"
+license = "Copyright of the reciter and the recording's producer; no license stated by Quran.com"
+attribution = "Recitation: Mahmoud Khalil al-Husary (Muallim). Source: Quran.com (Quran.Foundation), https://quran.com"
+notes = """
+Quran.com verse recitation 12 (API v4 /recitations/12/by_chapter): one mp3 per verse,
+served from verses.quran.com or the EveryAyah mirror on mirrors.quranicaudio.com.
+Re-encoded to mono MP3 at 64 kbit/s, without tags. No license for redistribution was
+found or granted; the project maintainer decided on 2026-11-07 to publish with
+attribution and to remove the pack on the rights holder's request (app ADR 0014).
+"""
+
+[build]
+quran_com = "verses"
+recitation_id = 12
+
+[pack]
+id = "audio.husary-muallim"
+type = "audio"
+lang = "ar"
+title = { tr = "Mahmud Halil el-Husari (Muallim)", en = "Mahmoud Khalil al-Husary (Muallim)" }
+author = "Mahmoud Khalil al-Husary"
+version = "1.0.0"
+min_app_version = "0.1.0"
+license = "Copyright of the reciter; redistributed from Quran.com with attribution"
+attribution = "Recitation: Mahmoud Khalil al-Husary (Muallim). Source: Quran.com (Quran.Foundation), https://quran.com"
+publish = true
+
+[pack.description]
+tr = "Mahmud Halil el-Husari kıraatiyle ayet ayet Kur'an tilaveti (Hafs, muallim). Kaynak: Quran.com."
+en = "Verse-by-verse Quran recitation by Mahmoud Khalil al-Husary (Hafs, muallim). Source: Quran.com."
+
+[pack.license_terms]
+tr = [
+  "Kayıtların hakları kariye ve kaydın yapımcısına aittir; ses Quran.com'dan atıfla dağıtılmaktadır.",
+  "Yalnızca kişisel, ticari olmayan dinleme içindir.",
+  "Hak sahibinin talebi üzerine paket kaldırılır.",
+]
+en = [
+  "The recordings belong to the reciter and the recording's producer; the audio is redistributed from Quran.com with attribution.",
+  "For personal, non-commercial listening only.",
+  "The pack is removed on the rights holder's request.",
+]
+
+[pack.meta]
+reciter = { tr = "Mahmud Halil el-Husari", en = "Mahmoud Khalil al-Husary" }
+style = "muallim"
+qirat = "hafs"
+bitrate = 64
+source = "quran.com"
+quran_com_id = 12

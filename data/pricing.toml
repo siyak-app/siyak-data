@@ -1,11 +1,74 @@
-# Source of dist/pricing.json (spec §9.4). Placeholder: real prices are out of
-# scope for M1. Add one [models."<provider>/<model>"] table per model:
+# Source of dist/pricing.json (spec §9.4): standard (non-batch, short-context)
+# prices in USD per million tokens, used for the app's cost estimates only.
+# One [models."<provider>/<model id>"] table per model; the id is exactly what
+# the provider's API takes. Models not listed show their cost as unknown.
 #
-# [models."anthropic/<model>"]
-# input_per_mtok = 0.0
-# output_per_mtok = 0.0
+# Checked 2026-11-07 against the providers' own pricing pages:
+#   https://platform.claude.com/docs/en/about-claude/pricing
+#   https://developers.openai.com/api/docs/pricing
+#   https://aistudio.google.com/docs/pricing
+# Scheduled changes to apply when they take effect are noted per model.
 
-updated_at = "2026-10-21"
+updated_at = "2026-11-07"
 currency = "USD"
 
-[models]
+# Anthropic. Haiku 5.5 prompts over 100,000 tokens cost $0.50 / $2.50.
+[models."anthropic/claude-fable-5-1"]
+input_per_mtok = 10.0
+output_per_mtok = 50.0
+
+[models."anthropic/claude-opus-5-5"]
+input_per_mtok = 4.0
+output_per_mtok = 20.0
+
+[models."anthropic/claude-sonnet-5-5"]
+input_per_mtok = 2.0
+output_per_mtok = 10.0
+
+[models."anthropic/claude-haiku-5-5"]
+input_per_mtok = 0.10
+output_per_mtok = 0.50
+
+# OpenAI: prompts up to 272K tokens; longer prompts cost more.
+[models."openai/gpt-6-astra"]
+input_per_mtok = 10.0
+output_per_mtok = 50.0
+
+[models."openai/gpt-6-sol"]
+input_per_mtok = 2.0
+output_per_mtok = 10.0
+
+[models."openai/gpt-6.1-sol"]
+input_per_mtok = 2.0
+output_per_mtok = 10.0
+
+[models."openai/gpt-6.1-terra"]
+input_per_mtok = 1.0
+output_per_mtok = 5.0
+
+[models."openai/gpt-6-luna"]
+input_per_mtok = 0.10
+output_per_mtok = 0.50
+
+# Gemini. Output prices include thinking tokens.
+# gemini-4-argon becomes $4.00 / $20.00 on 2026-12-01.
+[models."gemini/gemini-4-argon"]
+input_per_mtok = 2.0
+output_per_mtok = 10.0
+
+# Both become $1.50 / $7.50 on 2027-01-01.
+[models."gemini/gemini-3.8-flash"]
+input_per_mtok = 0.75
+output_per_mtok = 3.75
+
+[models."gemini/gemini-3.6-flash"]
+input_per_mtok = 0.75
+output_per_mtok = 3.75
+
+[models."gemini/gemini-3.5-flash-lite"]
+input_per_mtok = 0.30
+output_per_mtok = 2.50
+
+[models."gemini/gemini-3.1-flash-lite"]
+input_per_mtok = 0.25
+output_per_mtok = 1.50

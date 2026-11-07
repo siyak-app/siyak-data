@@ -16,7 +16,7 @@ from typing import Any
 from pipeline.errors import PipelineError
 from pipeline.paths import cache_dir, sources_dir
 
-PACK_TYPES = ("translation", "tafsir", "morphology", "vectors", "model")
+PACK_TYPES = ("translation", "tafsir", "morphology", "vectors", "model", "audio")
 
 
 @dataclass(frozen=True)

@@ -64,7 +64,7 @@ sha256 = ""                            # left empty until step 4
 
 [pack]
 id = "en.example"
-type = "translation"                   # translation | tafsir | morphology | vectors | model
+type = "translation"                   # translation | tafsir | morphology | vectors | model | audio
 lang = "en"
 title = { tr = "…", en = "…" }
 author = "…"

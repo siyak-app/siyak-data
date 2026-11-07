@@ -16,6 +16,9 @@ A release (tag `data-YYYY.MM.N`) contains:
 | `core.db` | The database bundled with the app installer (§3). Not listed in the manifest |
 | `<pack id>.sqlite.zst` | One file per SQLite pack, zstd-compressed (§4, §4.3) |
 | `<pack id>.tar.zst` | One file per archive pack (§4.4), e.g. `morphology.qac.tar.zst`, `model.e5-small.tar.zst` |
+
+Audio packs (§4.10) are not rebuilt by a data release: they live in `audio-*` releases
+and the manifest points at them (§6).
 | `manifest.json` | Describes every published pack (§6) |
 | `pricing.json` | AI model prices for cost estimates (spec §9.4) |
 | `SHA256SUMS` | sha256 of every asset |
@@ -29,13 +32,18 @@ A release (tag `data-YYYY.MM.N`) contains:
 - `verses_fts` holds `normalize(text_clean)` (docs/normalization.md);
 - `content_meta`: the versions of the core data (§3).
 
-Its version is `SCHEMA_VERSION = 2` (`pipeline/schema.py`): the
+Its version is `SCHEMA_VERSION = 3` (`pipeline/schema.py`): the
 `PRAGMA user_version` of core.db and the `schema_version` of every pack. It equals
 the number of the app's content migrations (`siyak/src-tauri/migrations/content/`:
-`0001_initial.sql`, and `0002` adding `surahs.bismillah`, `notices`,
+`0001_initial.sql`; `0002` adding `surahs.bismillah`, `notices`,
 `content_meta`, the normalized `verses_fts`, `tafsir.kind` and the rowid
-`tafsir_paragraphs` with `part`/`page`). Each new app migration that changes the
-content schema raises it by one. The CI job `schema-compat` checks that the
+`tafsir_paragraphs` with `part`/`page`; `0003` allowing `packs.type = 'audio'`). Each
+new app migration that changes the content schema raises it by one.
+
+Packs whose database holds only `pack_info` (`model`, `audio`) have no tables a
+schema change could break: they install under any `schema_version` from 1 up to the
+current one (`schema_supported` in `pipeline/install.py`, the same rule in the app).
+Every other pack must match `SCHEMA_VERSION` exactly. The CI job `schema-compat` checks that the
 app's migrations produce exactly this structure.
 
 ## 3. `core.db`
@@ -142,6 +150,7 @@ The app reads `pack_info` before installing and refuses the file unless
 | `morphology` | `words (id, verse_id, position, text_ar, translit, gloss_en)`, `roots (id, root)`, `lemmas (id, lemma, root_id)`, `word_segments (word_id, idx, kind, text_ar, pos, lemma_id, root_id, features)` (spec §5.3), inside an archive (§4.4) |
 | `vectors` | `vectors (verse_id, embedding)`, see §4.7 |
 | `model` | none besides `pack_info`, inside an archive (§4.4), see §4.8 |
+| `audio` | none besides `pack_info`, inside an archive (§4.4), see §4.10 |
 
 A translation pack has exactly one row per verse (6,236) and no empty text.
 
@@ -210,6 +219,7 @@ must hold exactly these names, each once:
 |---|---|
 | `morphology` | `morphology.sqlite`, `qac/COPYING`, `qac/NOTICE`, `qac/quranic-corpus-morphology-0.4.txt` |
 | `model` | `model.sqlite`, `model/LICENSE`, `model/model.onnx`, `model/tokenizer.json` |
+| `audio` | `audio.sqlite`, `audio/LICENSE` and `audio/SSSAAA.mp3` for every verse (6,236 files; `audio_members()`) |
 
 **Installation:** after the sha256 check, the app decompresses the tar
 (limit `installed_size`) and refuses it unless every member is a regular file
@@ -494,6 +504,44 @@ its vectors are built and pinned (`publish = false` until then).
 `model.e5-small` and `vectors.e5-small` (87 MB, clearly weaker) are kept as small
 packs for development and tests (`publish = false`).
 
+### 4.10 Audio packs
+
+One reciter's recitation, verse by verse (app ADR 0014). Pack ids are `audio.<reciter>`
+(lowercase letters, digits and `-` after the dot; the app's `siyak-audio:` scheme accepts
+nothing else). The archive holds `audio.sqlite` (only `pack_info`), `audio/LICENSE` (the
+recording's attribution and rights, shown on About → Sources) and one file per verse,
+`audio/SSSAAA.mp3` (surah and ayah, three digits each).
+
+- **Audio:** MP3, mono, 64 kbit/s, no tags (`ffmpeg … -ac 1 -b:a 64k -map_metadata -1
+  -fflags +bitexact`). A verse file never starts with the basmala; players play
+  `audio/001001.mp3` before the first verse of every surah except 1 and 9.
+- **Compression:** zstd level 3 (`AUDIO_ZSTD_LEVEL`): mp3 does not shrink further, and
+  level 19 would take long on about a gigabyte. A pack must stay below 2 GiB, GitHub's
+  limit for a release asset.
+- **Source:** Quran.com (`pipeline/quran_com.py`). `[build] quran_com = "verses"` with
+  `recitation_id` takes Quran.com's verse files (API v4); `"chapters"` with `reciter_id`
+  takes surah files and cuts them at Quran.com's verse timings (QDC), each cut in the
+  middle of the pause between two verses. The upstream files are pinned in
+  `sources/audio/<id>/files.tsv` (name, sha256, url), the timings in `timings.tsv`;
+  `fetch-audio --pin` writes both.
+- **`meta`:** `reciter` (`{tr, en}`), `style` (`murattal`, `mujawwad` or `muallim`),
+  `qirat` (`hafs`), `bitrate` (64), `source` (`quran.com`), `quran_com_id`. The app
+  lists a pack whose `reciter` or `style` is missing as unsupported.
+- **Gate** (`check_audio_pack`, run by `build-audio`): exactly the members above, each
+  verse an mp3 with one channel lasting at least 0.3 s (`ffprobe`), `pack_info` as in
+  `source.toml`, a non-empty LICENSE, below 2 GiB.
+- **Release:** too large for the data release workflow, so built by a maintainer:
+
+  ```sh
+  uv run siyak-data build-audio --fetch --pin --drop-upstream   # all reciters, ~24 GB download
+  gh release create audio-2026.11.0 dist/audio.*.tar.zst        # once per audio release
+  uv run siyak-data pin-audio --tag audio-2026.11.0             # writes [build.prebuilt]
+  ```
+
+  `[build.prebuilt]` (`tag`, `size`, `installed_size`, `sha256`) makes `manifest` list
+  the pack at `releases/download/<tag>/<id>.tar.zst` without downloading it (§6).
+  `--drop-upstream` deletes each reciter's downloads once its pack is built.
+
 ## 5. Versions
 
 - **Pack version:** SemVer, in `source.toml` `[pack].version`, bumped by hand
@@ -565,6 +613,9 @@ files and each `source.toml` `[pack]` table. Shape (spec §6.3):
 - A source with `[build] requires_permission = true` cannot be published until
   its directory holds `PERMISSION.md` with the rights holder's reply: `manifest`
   refuses it and `validate` fails (spec §6.6, al-Qurtubi).
+- **Prebuilt packs:** an `audio` pack with `[build.prebuilt]` is listed from that pin,
+  pointing at its `audio-*` release, whether or not it is in `dist/`. A copy in `dist/`
+  must have the pinned sha256. An audio pack with neither is left out with a warning.
 - **Bundles** come from `manifest.template.json`. Members that are not in the
   release are dropped (with a warning); an empty bundle is omitted. `recommended`
   holds `vectors.bge-m3` and `model.bge-m3`; `api` packs are never in a bundle, they

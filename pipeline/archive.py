@@ -15,13 +15,19 @@ from __future__ import annotations
 import tarfile
 from pathlib import Path, PurePosixPath
 
-from pipeline.compress import compress_pack, decompress_pack
+from pipeline.compress import ZSTD_LEVEL, compress_pack, decompress_pack
 from pipeline.errors import PipelineError
 
 TAR_SUFFIX = ".tar"
 
 
-def build_archive(out_dir: Path, pack_id: str, members: list[tuple[str, Path]], mtime: int) -> Path:
+def build_archive(
+    out_dir: Path,
+    pack_id: str,
+    members: list[tuple[str, Path]],
+    mtime: int,
+    level: int = ZSTD_LEVEL,
+) -> Path:
     """Write ``<out_dir>/<pack_id>.tar.zst`` from ``(name in archive, file)`` pairs."""
     tar_path = out_dir / f"{pack_id}{TAR_SUFFIX}"
     with tarfile.open(tar_path, "w", format=tarfile.USTAR_FORMAT) as tar:
@@ -35,7 +41,7 @@ def build_archive(out_dir: Path, pack_id: str, members: list[tuple[str, Path]], 
             info.uname = info.gname = ""
             with path.open("rb") as fh:
                 tar.addfile(info, fh)
-    compressed = compress_pack(tar_path)
+    compressed = compress_pack(tar_path, level)
     tar_path.unlink()
     return compressed
 

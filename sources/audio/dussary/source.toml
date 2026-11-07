@@ -1,0 +1,56 @@
+# Yasser ad-Dussary: recitation audio from Quran.com. See README.md in this directory.
+# Upstream files are pinned in files.tsv and timings.tsv (pipeline/build_audio.py).
+
+[source]
+id = "audio.dussary"
+name = "Quran.com recitation: Yasser ad-Dussary"
+homepage = "https://quran.com"
+license = "Copyright of the reciter and the recording's producer; no license stated by Quran.com"
+attribution = "Recitation: Yasser ad-Dussary (Murattal). Source: Quran.com (Quran.Foundation), https://quran.com"
+notes = """
+Quran.com chapter recitation 97 (QDC /audio/reciters/97/audio_files): one mp3 per surah,
+from download.quranicaudio.com, cut into verses at Quran.com's verse timings (timings.tsv).
+Re-encoded to mono MP3 at 64 kbit/s, without tags. No license for redistribution was
+found or granted; the project maintainer decided on 2026-11-07 to publish with
+attribution and to remove the pack on the rights holder's request (app ADR 0014).
+"""
+
+[build]
+quran_com = "chapters"
+reciter_id = 97
+
+[pack]
+id = "audio.dussary"
+type = "audio"
+lang = "ar"
+title = { tr = "Yasir ed-Devseri", en = "Yasser ad-Dussary" }
+author = "Yasser ad-Dussary"
+version = "1.0.0"
+min_app_version = "0.1.0"
+license = "Copyright of the reciter; redistributed from Quran.com with attribution"
+attribution = "Recitation: Yasser ad-Dussary (Murattal). Source: Quran.com (Quran.Foundation), https://quran.com"
+publish = true
+
+[pack.description]
+tr = "Yasir ed-Devseri kıraatiyle ayet ayet Kur'an tilaveti (Hafs, murattal). Kaynak: Quran.com."
+en = "Verse-by-verse Quran recitation by Yasser ad-Dussary (Hafs, murattal). Source: Quran.com."
+
+[pack.license_terms]
+tr = [
+  "Kayıtların hakları kariye ve kaydın yapımcısına aittir; ses Quran.com'dan atıfla dağıtılmaktadır.",
+  "Yalnızca kişisel, ticari olmayan dinleme içindir.",
+  "Hak sahibinin talebi üzerine paket kaldırılır.",
+]
+en = [
+  "The recordings belong to the reciter and the recording's producer; the audio is redistributed from Quran.com with attribution.",
+  "For personal, non-commercial listening only.",
+  "The pack is removed on the rights holder's request.",
+]
+
+[pack.meta]
+reciter = { tr = "Yasir ed-Devseri", en = "Yasser ad-Dussary" }
+style = "murattal"
+qirat = "hafs"
+bitrate = 64
+source = "quran.com"
+quran_com_id = 97

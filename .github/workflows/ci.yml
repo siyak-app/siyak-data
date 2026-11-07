@@ -22,7 +22,8 @@ jobs:
       - uses: astral-sh/setup-uv@v10.3.3
         with:
           enable-cache: true
-      - run: uv sync --locked
+      # numpy (vectors group) gives mypy the array types of the embedding modules.
+      - run: uv sync --locked --group vectors
       - run: uv run ruff check .
       - run: uv run ruff format --check .
       - run: uv run mypy
@@ -34,7 +35,8 @@ jobs:
       - uses: astral-sh/setup-uv@v10.3.3
         with:
           enable-cache: true
-      - run: uv sync --locked
+      # The vectors group runs the pinned-vector and API-pack tests too.
+      - run: uv sync --locked --group vectors
       - run: uv run pytest
       # Build on the committed fixtures: no network access needed.
       - run: uv run siyak-data build --profile fixtures

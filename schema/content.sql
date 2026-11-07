@@ -1,10 +1,11 @@
--- content.db schema, version 2 (PRAGMA user_version = 2): the app's content migrations 0001 + 0002.
+-- content.db schema, version 3 (PRAGMA user_version = 3): the app's content migrations 0001-0003.
 -- Tables as in the app specification (siyak/docs/spec/spec.md §5.1–§5.4), including
 --   * surahs.bismillah: the basmala Tanzil keeps apart from ayah 1 (sources/tanzil/README.md);
 --   * notices: source notices that must ship with the data (e.g. the Tanzil terms);
 --   * verses_fts holding normalize(text_clean), not text_clean itself (docs/normalization.md);
 --   * content_meta: versions of the bundled core data (docs/pack-format.md §3);
---   * tafsir.kind, and tafsir_paragraphs.part/page (a rowid table with UNIQUE (tafsir_id, idx)).
+--   * tafsir.kind, and tafsir_paragraphs.part/page (a rowid table with UNIQUE (tafsir_id, idx));
+--   * packs.type 'audio': recitation packs, files only (version 3).
 -- Vector tables (vec0) are created per pack at install time (M7) and are not part of this file.
 
 -- §5.1 core
@@ -33,7 +34,7 @@ CREATE TABLE verses (
 CREATE TABLE packs (
   id            TEXT PRIMARY KEY,              -- e.g. 'en.pickthall'
   type          TEXT NOT NULL CHECK (type IN
-                  ('translation','tafsir','morphology','vectors','model')),
+                  ('translation','tafsir','morphology','vectors','model','audio')),
   lang          TEXT,
   title         TEXT NOT NULL,
   author        TEXT,

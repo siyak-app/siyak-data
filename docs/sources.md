@@ -17,6 +17,8 @@ terms), `README.md` (origin and edition), `LICENSE` and `NOTICE`.
 
 | [al-Qurṭubī, *al-Jāmiʿ li-Aḥkām al-Qurʾān*](../sources/tafsir/ar.qurtubi/) (Quranic Universal Library, Tarteel, resource #23) | file 2025-05-26 | Classical work: public domain. QUL digitization: no license or origin stated; permission requested | "Source: Quranic Universal Library (Tarteel)", with link | `ar.qurtubi`, **not published** until `PERMISSION.md` records Tarteel's reply |
 
+| [Quran.com recitations](../sources/audio/) (14 reciters, one directory each: `sources/audio/<reciter>`) | `files.tsv` pins of 2026-11-07 | No license stated; rights belong to the reciter and the recording's producer. Published with attribution by the maintainer's decision on 2026-11-07, removed on request (app ADR 0014) | "Recitation: <reciter>. Source: Quran.com (Quran.Foundation), https://quran.com" | `audio.abdulbaset-mujawwad`, `audio.abdulbaset-murattal`, `audio.sudais`, `audio.shatri`, `audio.rifai`, `audio.husary`, `audio.husary-muallim`, `audio.alafasy`, `audio.minshawi-mujawwad`, `audio.minshawi-murattal`, `audio.shuraym`, `audio.tablawi`, `audio.dussary`, `audio.tunaiji` |
+
 ## Restrictive terms at a glance
 
 | Pack | Term | Where users see it |
@@ -26,3 +28,4 @@ terms), `README.md` (origin and edition), `LICENSE` and `NOTICE`.
 | `en.*`, `tr.*` from Tanzil | Non-commercial use; link to https://tanzil.net/trans/; the list may not be redistributed on another website without permission | Packs screen (`attribution`, `license_terms`), About → Sources |
 | `ar.*` tafsirs | Credit Quranpedia.net with link and dump version; text is the printed edition's; editor footnotes and edition matter left out; packs updated when Quranpedia corrects the text | Packs screen (`attribution`, `license_terms`), tafsir panel, About → Sources |
 | `morphology.qac` | Original file only verbatim; tags never corrected (errata: `docs/qac-errata.md`); source + link wherever shown; non-commercial | Packs screen (`license_terms`), word card, Word panel, concordance, exports, About → Sources (`qac/NOTICE` in full) |
+| `audio.*` | Rights not cleared: personal, non-commercial listening; removed at the rights holder's request | Packs screen (`attribution`, `license_terms`), recitation bar, About → Sources (`audio/LICENSE`) |

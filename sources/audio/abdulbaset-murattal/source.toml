@@ -1,0 +1,56 @@
+# AbdulBaset AbdulSamad (Murattal): recitation audio from Quran.com. See README.md in this directory.
+# Upstream files are pinned in files.tsv (pipeline/build_audio.py).
+
+[source]
+id = "audio.abdulbaset-murattal"
+name = "Quran.com recitation: AbdulBaset AbdulSamad (Murattal)"
+homepage = "https://quran.com"
+license = "Copyright of the reciter and the recording's producer; no license stated by Quran.com"
+attribution = "Recitation: AbdulBaset AbdulSamad (Murattal). Source: Quran.com (Quran.Foundation), https://quran.com"
+notes = """
+Quran.com verse recitation 2 (API v4 /recitations/2/by_chapter): one mp3 per verse,
+served from verses.quran.com or the EveryAyah mirror on mirrors.quranicaudio.com.
+Re-encoded to mono MP3 at 64 kbit/s, without tags. No license for redistribution was
+found or granted; the project maintainer decided on 2026-11-07 to publish with
+attribution and to remove the pack on the rights holder's request (app ADR 0014).
+"""
+
+[build]
+quran_com = "verses"
+recitation_id = 2
+
+[pack]
+id = "audio.abdulbaset-murattal"
+type = "audio"
+lang = "ar"
+title = { tr = "Abdülbasit Abdüssamed (Murattal)", en = "AbdulBaset AbdulSamad (Murattal)" }
+author = "AbdulBaset AbdulSamad"
+version = "1.0.0"
+min_app_version = "0.1.0"
+license = "Copyright of the reciter; redistributed from Quran.com with attribution"
+attribution = "Recitation: AbdulBaset AbdulSamad (Murattal). Source: Quran.com (Quran.Foundation), https://quran.com"
+publish = true
+
+[pack.description]
+tr = "Abdülbasit Abdüssamed kıraatiyle ayet ayet Kur'an tilaveti (Hafs, murattal). Kaynak: Quran.com."
+en = "Verse-by-verse Quran recitation by AbdulBaset AbdulSamad (Hafs, murattal). Source: Quran.com."
+
+[pack.license_terms]
+tr = [
+  "Kayıtların hakları kariye ve kaydın yapımcısına aittir; ses Quran.com'dan atıfla dağıtılmaktadır.",
+  "Yalnızca kişisel, ticari olmayan dinleme içindir.",
+  "Hak sahibinin talebi üzerine paket kaldırılır.",
+]
+en = [
+  "The recordings belong to the reciter and the recording's producer; the audio is redistributed from Quran.com with attribution.",
+  "For personal, non-commercial listening only.",
+  "The pack is removed on the rights holder's request.",
+]
+
+[pack.meta]
+reciter = { tr = "Abdülbasit Abdüssamed", en = "AbdulBaset AbdulSamad" }
+style = "murattal"
+qirat = "hafs"
+bitrate = 64
+source = "quran.com"
+quran_com_id = 2

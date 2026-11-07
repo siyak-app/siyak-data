@@ -199,6 +199,114 @@ def cmd_export_vectors(args: argparse.Namespace) -> None:
     )
 
 
+def _audio_sources(args: argparse.Namespace) -> list[Source]:
+    by_id = {s.pack.id: s for s in load_all() if s.pack and s.pack.type == "audio"}
+    wanted: list[str] = args.pack or sorted(by_id)
+    unknown = sorted(set(wanted) - set(by_id))
+    if unknown:
+        raise PipelineError(f"unknown audio pack(s): {', '.join(unknown)}")
+    return [by_id[i] for i in wanted]
+
+
+def cmd_fetch_audio(args: argparse.Namespace) -> None:
+    """Download (and with --pin, list and pin) the upstream files of audio packs."""
+    from pipeline.build_audio import fetch_audio  # noqa: PLC0415
+
+    for source in _audio_sources(args):
+
+        def progress(done: int, total: int, pack_id: str = source.id) -> None:
+            if done % 500 == 0 or done == total:
+                print(f"  {pack_id}: {done}/{total}", flush=True)
+
+        dest = fetch_audio(source, pin=args.pin, workers=args.workers, progress=progress)
+        print(f"fetched  {source.id}  {dest}", flush=True)
+
+
+def cmd_build_audio(args: argparse.Namespace) -> None:
+    """Build, check and (with --drop-upstream) clean up audio packs, one at a time."""
+    from pipeline.build_audio import (  # noqa: PLC0415
+        build_audio_pack,
+        check_audio_pack,
+        drop_upstream,
+        fetch_audio,
+    )
+    from pipeline.schema import build_epoch, build_timestamp  # noqa: PLC0415
+
+    out = dist_dir()
+    built_at, mtime = build_timestamp(), build_epoch()
+    for source in _audio_sources(args):
+        pack = source.pack
+        assert pack is not None
+        if args.skip_built and (out / f"{pack.id}.tar.zst").exists():
+            print(f"skip   {pack.id} (built)", flush=True)
+            continue
+        if args.fetch:
+            fetch_audio(source, pin=args.pin, workers=args.workers)
+        for path in build_audio_pack(source, out, built_at=built_at, mtime=mtime):
+            print(f"built  {path}  {path.stat().st_size:,} bytes", flush=True)
+        problems = check_audio_pack(out / f"{pack.id}.tar.zst", pack.id, pack.version)
+        for problem in problems[:20]:
+            print(f"  FAIL {problem}")
+        if problems:
+            raise PipelineError(f"{pack.id}: {len(problems)} problem(s)")
+        print(f"ok     {pack.id}", flush=True)
+        if args.drop_upstream:
+            drop_upstream(source)
+
+
+def cmd_pin_audio(args: argparse.Namespace) -> None:
+    """Write [build.prebuilt] of uploaded audio packs into their source.toml."""
+    from pipeline.build_audio import prebuilt_block  # noqa: PLC0415
+
+    for source in _audio_sources(args):
+        assert source.pack is not None
+        archive = dist_dir() / f"{source.pack.id}.tar.zst"
+        if not archive.exists():
+            raise PipelineError(f"{archive}: not built")
+        text = source.path.read_text(encoding="utf-8")
+        marker = "[build.prebuilt]"
+        if marker in text:
+            text = text[: text.index(marker)].rstrip() + "\n"
+        source.path.write_text(text + "\n" + prebuilt_block(archive, args.tag), encoding="utf-8")
+        print(f"pinned  {source.pack.id}  {source.path.relative_to(repo_root())}")
+
+
+def _add_audio_parsers(sub: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:
+    fetch_audio = sub.add_parser(
+        "fetch-audio", help="download the Quran.com files of audio packs into .cache/"
+    )
+    fetch_audio.add_argument("--pack", action="append", help="only this audio pack (repeatable)")
+    fetch_audio.add_argument(
+        "--pin", action="store_true", help="list and pin sources without files.tsv"
+    )
+    fetch_audio.add_argument("--workers", type=int, default=8, help="parallel downloads")
+    fetch_audio.set_defaults(func=cmd_fetch_audio)
+
+    build_audio = sub.add_parser(
+        "build-audio", help="encode, pack and check audio packs into dist/ (needs ffmpeg)"
+    )
+    build_audio.add_argument("--pack", action="append", help="only this audio pack (repeatable)")
+    build_audio.add_argument("--fetch", action="store_true", help="fetch-audio first")
+    build_audio.add_argument("--pin", action="store_true", help="with --fetch: pin new sources")
+    build_audio.add_argument("--workers", type=int, default=8, help="parallel downloads")
+    build_audio.add_argument(
+        "--drop-upstream",
+        action="store_true",
+        help="delete each pack's downloaded files after it is built (saves disk)",
+    )
+    build_audio.add_argument(
+        "--skip-built", action="store_true", help="skip packs already in dist/"
+    )
+    build_audio.set_defaults(func=cmd_build_audio)
+
+    pin_audio = sub.add_parser(
+        "pin-audio", help="pin uploaded audio packs in source.toml ([build.prebuilt])"
+    )
+    pin_audio.add_argument("--pack", action="append", help="only this audio pack (repeatable)")
+    pin_audio.add_argument("--tag", required=True, help="the audio-* release holding the packs")
+    pin_audio.set_defaults(func=cmd_pin_audio)
+
+
 def build_parser() -> argparse.ArgumentParser:
     """Create the argument parser with all subcommands."""
     parser = argparse.ArgumentParser(prog="siyak-data", description=__doc__)
@@ -266,6 +374,8 @@ def build_parser() -> argparse.ArgumentParser:
         "--pack", action="append", help="only this vector pack (default: the published ones)"
     )
     export.set_defaults(func=cmd_export_vectors)
+
+    _add_audio_parsers(sub)
 
     return parser
 
